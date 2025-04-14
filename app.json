@@ -1,28 +1,51 @@
 {
   "expo": {
-    "name": "DoneWithIt",
-    "slug": "DoneWithIt",
+    "name": "FareEasy",
+    "slug": "FareEasy",
+    "scheme": "fareeasy",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/FareEasy-Logo.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
+    "extra": {
+      "googleMapsApiKey": "AIzaSyDh3IwX1o3v0Ud_YZJUtM_29LIetafzQAY",
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "86865352-b24f-4b68-ac43-1951864dcd72"
+      }
+    },
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/FareEasy-Logo.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": false
     },
     "android": {
+      "versionCode": 1,
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyDh3IwX1o3v0Ud_YZJUtM_29LIetafzQAY"
+        }
+      },
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.ryu0823.FareEasy"
     },
     "web": {
-      "favicon": "./assets/favicon.png"
-    }
+      "favicon": "./assets/FareEasy-Logo.png",
+      "bundler": "metro",
+      "output": "standalone",
+      "history": "memory"
+    },
+    "plugins": [
+      "expo-router"
+    ]
   }
 }
