@@ -1,14 +1,22 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, SafeAreaView, Image } from 'react-native';
+import { View,  StatusBar, Text, TextInput, TouchableOpacity, SafeAreaView, Image, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useFonts } from 'expo-font';
 
 const Login = () => {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [fontsLoaded] = useFonts({
+    'Inter-Bold': require('../../assets/fonts/Inter_18pt-Bold.ttf'), // Replace with your font path
+    'Inter-Regular': require('../../assets/fonts/Inter_18pt-Regular.ttf'), // Replace with your font path
+  });
 
+  if (!fontsLoaded) {
+    return null; // Render nothing until the font is loaded
+  }
   const handleLogin = () => {
     router.push('./Home'); 
   };
@@ -18,21 +26,24 @@ const Login = () => {
 
   return (
       <SafeAreaView className="flex-1 bg-gray-900">
+         <StatusBar barStyle="light-content" backgroundColor="transparent" translucent  />
         <View className="flex-1 px-6 pt-10 items-center">
           {/* Logo */}
-          <View className="mb-20 mt-20 items-center">
+          <View className="mb-10 mt-28 items-center">
             <View className="w-16 h-16 rounded-full bg-gray-900 items-center justify-center">
               <Image
                 source={require('../../assets/FareEasy-Logo.png')} // Replace with your image path
-                style={{ width: 250, height: 250 }}
+                style={{ width: 180, height: 180 }}
               />
             </View>
           </View>
 
           {/* Sign in text */}
-          <Text className="text-white text-2xl font-bold mb-2 self-start">Sign in to your</Text>
-          <Text className="text-white text-2xl font-bold mb-6 self-start">Account</Text>
-          <Text className="text-gray-400 text-sm mb-4 self-start">Enter your email and password to log in</Text>
+          <Text style={{ color: 'white', fontSize: 24, fontFamily: 'Inter-Bold', marginBottom: 8, alignSelf: 'flex-start' }}>
+            Sign in to your</Text>
+            <Text style={{ color: 'white', fontSize: 24, fontFamily: 'Inter-Bold', marginBottom: 8, alignSelf: 'flex-start' }}>
+              Account</Text>
+              <Text style={{ color: 'gray', fontSize: 12, fontFamily: 'Inter-Regular', marginBottom: 8, alignSelf: 'flex-start' }}>Enter your email and password to log in</Text>
 
           {/* Email input */}
           <View className="w-full mb-4">
@@ -106,7 +117,7 @@ const Login = () => {
           </View>
         </View>
       </SafeAreaView>
-  
+ 
   );
 };
 

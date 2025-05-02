@@ -20,6 +20,7 @@ const RootLayout = () => {
                     <Stack.Screen name="Login" />
                     <Stack.Screen name="Signup" />
                     <Stack.Screen name="Home" />
+                    <Stack.Screen name="ChooseLocation"/>
                     <Stack.Screen name="Editprofile" />
                     <Stack.Screen name="Menu" />
                     <Stack.Screen name="Changepassword" />

@@ -33,7 +33,7 @@
         }
       },
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/FareEasy-Logo.png",
         "backgroundColor": "#ffffff"
       },
       "package": "com.ryu0823.FareEasy"

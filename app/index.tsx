@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Redirect } from 'expo-router';
+import 'react-native-get-random-values';
 
 const App: React.FC = () => {
   return (

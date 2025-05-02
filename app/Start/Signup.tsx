@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, SafeAreaView, Image } from 'react-native';
+import { View, Text, StatusBar, TextInput, TouchableOpacity, SafeAreaView, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 
 const Signup = () => {
@@ -21,13 +21,14 @@ const Signup = () => {
   return (
   
       <SafeAreaView className="flex-1 bg-gray-900">
+         <StatusBar barStyle="light-content" backgroundColor="transparent" translucent  />
         <View className="flex-1 px-6 pt-10 items-center">
           {/* Logo */}
-          <View className="mb-20 mt-20 items-center">
+          <View className="mb-10 mt-28 items-center">
             <View className="w-16 h-16 rounded-full bg-gray-900 items-center justify-center">
               <Image
                 source={require('../../assets/FareEasy-Logo.png')} // Replace with your image path
-                style={{ width: 250, height: 250 }}
+                style={{ width: 180, height: 180 }}
               />
             </View>
           </View>
