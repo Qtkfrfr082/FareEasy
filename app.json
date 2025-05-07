@@ -1,9 +1,9 @@
 {
   "expo": {
-    "name": "FareEasy",
+    "name": "RideWise",
     "slug": "FareEasy",
-    "scheme": "fareeasy",
-    "version": "1.0.0",
+    "scheme": "FareEasy",
+    "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/FareEasy-Logo.png",
     "userInterfaceStyle": "light",
@@ -20,7 +20,7 @@
     "splash": {
       "image": "./assets/FareEasy-Logo.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#0f1c2e"
     },
     "ios": {
       "supportsTablet": false
@@ -34,7 +34,7 @@
       },
       "adaptiveIcon": {
         "foregroundImage": "./assets/FareEasy-Logo.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#0f1c2e"
       },
       "package": "com.ryu0823.FareEasy"
     },

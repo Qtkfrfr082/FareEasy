@@ -3,11 +3,22 @@ import { Text, View, TouchableOpacity, StyleSheet, StatusBar } from 'react-nativ
 import MapView, { PROVIDER_GOOGLE } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useFonts } from 'expo-font';
 
 const App = () => {
   const router = useRouter();
   const mapRef = useRef(null);
-
+  const [fontsLoaded] = useFonts({
+      'Inter-Bold': require('../../assets/fonts/Inter_18pt-Bold.ttf'), // Replace with your font path
+      'Inter-Regular': require('../../assets/fonts/Inter_18pt-Regular.ttf'), // Replace with your font path
+    });
+  
+    if (!fontsLoaded) {
+      return null; // Render nothing until the font is loaded
+    }
+  const handleMenu = () => {
+    router.push('./components/Menu');
+  };
   const handleChooseLoc = () => {
     router.push('./ChooseLocation');
   };
@@ -25,8 +36,8 @@ const App = () => {
 
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerText}>Fare Easy</Text>
-        <TouchableOpacity>
+        <Text style={styles.headerText}  >Fare Easy</Text>
+        <TouchableOpacity onPress={handleMenu}>
           <View style={styles.menuIcon}>
             <View style={styles.menuLine} />
             <View style={styles.menuLine} />
@@ -83,16 +94,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 20,
+    
     paddingTop: StatusBar.currentHeight || 40, // Dynamically add padding for the status bar
     backgroundColor: '#1E2029',
   },
   headerText: {
     color: 'white',
+    fontFamily: 'Inter-Bold',
     fontSize: 26,
     fontWeight: 'bold',
   },
   menuIcon: {
-    width: 30,
+    width: 28,
     height: 22,
     justifyContent: 'space-between',
   },
@@ -126,6 +139,7 @@ const styles = StyleSheet.create({
   },
   searchText: {
     color: 'white',
+    fontFamily: 'Inter-Regular',
     fontSize: 16,
     fontWeight: 'bold',
   },

@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Text, StyleSheet, Animated, Image , View} from 'react-native';
+import { Text, StyleSheet, Animated, Image ,StatusBar, View} from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
 
 interface SplashScreenProps {
@@ -31,6 +31,7 @@ const SplashScreenComponent: React.FC<SplashScreenProps> = ({ onFinish }) => {
 
     return (
         <View style={styles.container}>
+            <StatusBar barStyle="light-content" backgroundColor="transparent" translucent  />
             <Animated.Image
                 source={require('../assets/FareEasy-Logo.png')}
                 style={[styles.logo, { transform: [{ translateY: slideAnim }] }]}
