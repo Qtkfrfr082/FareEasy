@@ -55,7 +55,8 @@ export default function Menu() {
         handlePress={() => router.push('./Changepassword')}/>
         <Option icon="info" label="App Information" 
           handlePress={() => router.push('./Appinformation')}/>
-        <Option icon="calendar" label="Transit Record" />
+        <Option icon="calendar" label="Transit Record" 
+        handlePress={() => router.push('./TransitRecord')}/>
         <Option icon="log-out" label="Log out" 
          handlePress={() => router.push('../Login')}/>
       </View>

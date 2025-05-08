@@ -24,6 +24,7 @@ const RootLayout = () => {
                     <Stack.Screen name="Editprofile" />
                     <Stack.Screen name="Menu" />
                     <Stack.Screen name="Changepassword" />
+                    <Stack.Screen name="RouteMap" />
                 </Stack>
             )}
         </>

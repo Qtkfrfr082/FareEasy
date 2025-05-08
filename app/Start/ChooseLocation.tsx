@@ -8,22 +8,27 @@ import {
   StyleSheet, 
   StatusBar,
   FlatList,
-  ScrollView 
+  ScrollView,
+  Alert
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter} from 'expo-router';
+import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
 interface HistoryItem {
   id: string;
   name: string;
   address: string;
 }
-
+const GOOGLE_MAPS_APIKEY = 'AIzaSyDh3IwX1o3v0Ud_YZJUtM_29LIetafzQAY'; // Replace with your API key
 const RouteScreen = () => {
   const router = useRouter();
-  const [origin, setOrigin] = useState('');
+  const [origin, setOrigin] = useState<any | null>(null); // Replace 'any' with the correct type if available
   const [destination, setDestination] = useState('');
   const [passengerType, setPassengerType] = useState('Select Passenger Type');
   
+  const handleApply = () => {
+    router.push('./components/RoutesMap'); 
+  };
   const handleBack = () => {
     router.push('./Home'); 
   };
@@ -90,38 +95,101 @@ const RouteScreen = () => {
       </View>
       
       {/* Route Planning Section */}
-      <View style={styles.routeSection}>
-        {/* Origin Input */}
-        <View style={styles.inputRow}>
-          <View style={styles.locationMarker}>
-            <View style={styles.originMarker} />
-          </View>
-          <View style={styles.inputContainer}>
-            <TextInput
-              style={styles.input}
-              placeholder="Your location"
-              placeholderTextColor="#8E8E93"
-              value={origin}
-              onChangeText={setOrigin}
-            />
-          </View>
+      {/* Google Places Autocomplete for Origin */}
+      <View style={styles.inputRow}>
+        <View style={styles.locationMarker}>
+          <View style={styles.originMarker} />
         </View>
-        
-        {/* Destination Input */}
-        <View style={styles.inputRow}>
-          <View style={styles.locationMarker}>
-            <View style={styles.destinationMarker} />
-          </View>
-          <View style={styles.inputContainer}>
-            <TextInput
-              style={styles.input}
-              placeholder="Choose destination"
-              placeholderTextColor="#8E8E93"
-              value={destination}
-              onChangeText={setDestination}
-            />
-          </View>
+        <GooglePlacesAutocomplete
+          placeholder="Your location"
+          onPress={(data, details = null) => {
+            setOrigin(details); // Save origin details
+          }}
+          query={{
+            key: GOOGLE_MAPS_APIKEY,
+            language: 'en',
+          }}
+          fetchDetails={true}
+          styles={{
+            container: {
+              flex: 1,
+            },
+            textInput: {
+              backgroundColor: '#2A2D3A',
+              color: 'white',
+              borderRadius: 8,
+              paddingHorizontal: 16,
+              fontSize: 16,
+              height: 40,
+            },
+            listView: {
+              backgroundColor: '#1E2029', // Dark background for dropdown
+              borderRadius: 8,
+              marginHorizontal: 16,
+            },
+            row: {
+              backgroundColor: '#1E2029', // Match dropdown background
+              padding: 12,
+              borderBottomWidth: 1,
+              borderBottomColor: '#333',
+            },
+            description: {
+              color: 'white', // White text for dropdown items
+            },
+            predefinedPlacesDescription: {
+              color: '#7B86F4', // Highlight color for predefined places
+            },
+          }}
+        />
+      </View>
+
+      {/* Google Places Autocomplete for Destination */}
+      <View style={styles.inputRow}>
+        <View style={styles.locationMarker}>
+          <View style={styles.destinationMarker} />
         </View>
+        <GooglePlacesAutocomplete
+          placeholder="Choose destination"
+          onPress={(data, details = null) => {
+            setDestination(details?.formatted_address || ''); // Save destination details as a string
+          }}
+          query={{
+            key: GOOGLE_MAPS_APIKEY,
+            language: 'en',
+          }}
+          fetchDetails={true}
+          styles={{
+            container: {
+              flex: 1,
+            },
+            textInput: {
+              backgroundColor: '#2A2D3A',
+              color: 'white',
+              borderRadius: 8,
+              paddingHorizontal: 16,
+              fontSize: 16,
+              height: 40,
+            },
+            listView: {
+              backgroundColor: '#1E2029', // Dark background for dropdown
+              borderRadius: 8,
+              marginHorizontal: 16,
+            },
+            row: {
+              backgroundColor: '#1E2029', // Match dropdown background
+              padding: 12,
+              borderBottomWidth: 1,
+              borderBottomColor: '#333',
+            },
+            description: {
+              color: 'white', // White text for dropdown items
+            },
+            predefinedPlacesDescription: {
+              color: '#7B86F4', // Highlight color for predefined places
+            },
+          }}
+        />
+      </View>
         
         {/* Transportation Mode Button */}
         <View style={styles.inputRow}>
@@ -138,8 +206,15 @@ const RouteScreen = () => {
           <Text style={styles.dropdownText}>{passengerType}</Text>
           <Ionicons name="chevron-down" size={20} color="#333" />
         </TouchableOpacity>
-      </View>
-      
+   
+      {/* Apply Button */}
+  <TouchableOpacity
+    style={styles.applyButton}
+    onPress={handleApply}
+  >
+    <Text style={styles.applyButtonText}>Apply</Text>
+  </TouchableOpacity>
+
       {/* Pin Location Button */}
       <TouchableOpacity style={styles.pinLocationButton}>
         <View style={styles.pinMarkerContainer}>
@@ -210,13 +285,13 @@ const styles = StyleSheet.create({
     width: 16,
     height: 16,
     borderRadius: 8,
-    backgroundColor: '#7B86F4',
+    backgroundColor: '#7B86F4', // Blue marker for origin
   },
   destinationMarker: {
     width: 16,
     height: 16,
     borderRadius: 8,
-    backgroundColor: '#FF4D4D',
+    backgroundColor: '#FF4D4D', // Red marker for destination
   },
   inputContainer: {
     flex: 1,
@@ -227,8 +302,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   input: {
+    backgroundColor: '#2A2D3A',
     color: 'white',
+    borderRadius: 8,
+    paddingHorizontal: 16,
     fontSize: 16,
+    height: 40,
   },
   transportButton: {
     flex: 1,
@@ -340,6 +419,28 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     marginVertical: 8,
   },
+  applyButton: {
+    margin: 16,
+    padding: 16,
+    backgroundColor: '#2048F3',
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  applyButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  autocompleteContainer: {
+    marginTop: 20,
+    position: 'absolute', 
+    marginHorizontal: 16,
+    
+   
+  },
+  
 });
 
 export default RouteScreen;
