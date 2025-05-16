@@ -91,7 +91,7 @@ export default function RideWise() {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#1E2029' }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#0f1c2e' }}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
       {/* Header */}

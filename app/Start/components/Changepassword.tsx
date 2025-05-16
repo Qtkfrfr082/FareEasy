@@ -23,7 +23,7 @@ export default function Changepassword() {
     router.push('./Menu'); 
   };
   return (
-    <SafeAreaView className="flex-1 bg-gray-900">
+    <SafeAreaView className="flex-1 bg-[#0f1c2e]">
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
       
       <View className="flex-1 px-5 pt-10">
@@ -101,7 +101,7 @@ export default function Changepassword() {
         </View>
         
         {/* Reset Password Button */}
-        <TouchableOpacity className="bg-blue-600 py-4 rounded">
+        <TouchableOpacity className="bg-cyan-500 py-4 rounded-xl mt-8">
           <Text style={{ color: 'white', fontSize: 16, fontFamily: 'Inter-Regular',  alignSelf: 'center' }}>
             Reset Password
           </Text>

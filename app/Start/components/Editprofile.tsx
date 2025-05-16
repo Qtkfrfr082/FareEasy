@@ -50,7 +50,7 @@ export default function Editprofile() {
       </View>
 
       {/* Save Button */}
-      <TouchableOpacity className="bg-blue-600 py-4 rounded-xl mt-8">
+      <TouchableOpacity className="bg-cyan-500 py-4 rounded-xl mt-8">
         <Text className="text-center "style={{ color: 'white', fontSize: 16, fontFamily: 'Inter-Regular'}}>Save Changes</Text>
       </TouchableOpacity>
     </ScrollView>

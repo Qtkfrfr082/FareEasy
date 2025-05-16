@@ -23,7 +23,11 @@
       "backgroundColor": "#0f1c2e"
     },
     "ios": {
-      "supportsTablet": false
+      "supportsTablet": false,
+      "bundleIdentifier": "com.ryu0823.FareEasy",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "versionCode": 1,
@@ -33,7 +37,7 @@
         }
       },
       "adaptiveIcon": {
-        "foregroundImage": "./assets/FareEasy-Logo.png",
+        "foregroundImage": "./assets/adaptive-icon2.png",
         "backgroundColor": "#0f1c2e"
       },
       "package": "com.ryu0823.FareEasy"

@@ -37,7 +37,10 @@ const SplashScreenComponent: React.FC<SplashScreenProps> = ({ onFinish }) => {
                 style={[styles.logo, { transform: [{ translateY: slideAnim }] }]}
             />
             <Animated.Text style={[styles.text, { transform: [{ translateY: slideAnim }] }]}>
-                Welcome to MyApp!
+                FareEasy
+            </Animated.Text>
+            <Animated.Text style={[styles.textSub, { transform: [{ translateY: slideAnim }] }]}>
+                "Find the Best Route & Fare"
             </Animated.Text>
         </View>
     );
@@ -48,7 +51,7 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: '#111827',
+        backgroundColor: '#0f1c2e',
     },
     logo: {
         width: 150,
@@ -57,6 +60,11 @@ const styles = StyleSheet.create({
     },
     text: {
         fontSize: 24,
+        fontWeight: 'bold',
+        color: '#FFFFFF',
+    },
+     textSub: {
+        fontSize: 16,
         fontWeight: 'bold',
         color: '#FFFFFF',
     },

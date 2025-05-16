@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef} from 'react';
 import { 
   View, 
   Text, 
@@ -9,10 +9,12 @@ import {
   StatusBar,
   FlatList,
   ScrollView,
-  Alert
+  Alert,
+  
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useRouter} from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Ionicons , MaterialCommunityIcons} from '@expo/vector-icons';
+import { useRouter, useLocalSearchParams} from 'expo-router';
 import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
 interface HistoryItem {
   id: string;
@@ -23,63 +25,139 @@ const GOOGLE_MAPS_APIKEY = 'AIzaSyDh3IwX1o3v0Ud_YZJUtM_29LIetafzQAY'; // Replace
 const RouteScreen = () => {
   const router = useRouter();
   const [origin, setOrigin] = useState<any | null>(null); // Replace 'any' with the correct type if available
-  const [destination, setDestination] = useState('');
-  const [passengerType, setPassengerType] = useState('Select Passenger Type');
-  
-  const handleApply = () => {
-    router.push('./components/RoutesMap'); 
-  };
+  const [destination, setDestination] = useState<any | null>(null); // Use a better type if available
+  const params = useLocalSearchParams();
+  const originData = params.originData ? JSON.parse(params.originData as string) : null;
+  const originRef = useRef<any>(null);
+  const destinationRef = useRef<any>(null);
+  const hasSetOriginRef = useRef(false);
+  const [historyData, setHistoryData] = useState<HistoryItem[]>([]);
+  const ITEMS_PER_PAGE = 5;
+  const [currentPage, setCurrentPage] = useState(1);
+
+
+  const [passengerType, setPassengerType] = useState('Regular');
+  const [showDropdown, setShowDropdown] = useState(false);
+
+  const passengerOptions = ['Student', 'PWD', 'Senior Citizen', 'Regular'];
+  React.useEffect(() => {
+  AsyncStorage.getItem('recentHistory').then(data => {
+    if (data) setHistoryData(JSON.parse(data));
+  });
+}, []);
+
+// Save history to AsyncStorage whenever it changes
+React.useEffect(() => {
+  AsyncStorage.setItem('recentHistory', JSON.stringify(historyData));
+}, [historyData]);
+
+React.useEffect(() => {
+  if (originData && !hasSetOriginRef.current) {
+    setOrigin(originData);
+    const addressText =
+      originData.formatted_address ||
+      originData.name ||
+      (originData.vicinity ? originData.vicinity : '') ||
+      '';
+    if (originRef.current && addressText) {
+      originRef.current.setAddressText(addressText);
+      hasSetOriginRef.current = true; // Prevent future updates
+    }
+  }
+}, [originData]);
+
+const handleApply = () => {
+  if (!origin || !destination) {
+    Alert.alert('Please select both origin and destination.');
+    return;
+  }
+  const lat = origin.geometry?.location?.lat;
+  const lng = origin.geometry?.location?.lng;
+
+  // Get a readable origin label
+  let originLabel = origin.name || origin.formatted_address || origin.vicinity || '';
+  if (!originLabel && origin.geometry?.location) {
+    originLabel = `Current Location (${lat},${lng})`;
+  }
+
+  // Get a readable destination label
+  let destinationLabel =
+    typeof destination === 'object' && destination !== null
+      ? destination.formatted_address || destination.name || destination.vicinity || ''
+      : (typeof destination === 'string' ? destination : '');
+
+  setHistoryData(prev => {
+    const newItem = {
+      id: Date.now().toString(),
+      name: originLabel,
+      address: destinationLabel,
+    };
+    // Remove duplicates
+    const filtered = prev.filter(
+      item =>
+        item.name !== newItem.name ||
+        item.address !== newItem.address
+    );
+    return [newItem, ...filtered].slice(0, 10); // Keep only latest 10
+  });
+
+  router.push({
+    pathname: './components/RoutesMap',
+    params: {
+      origin: `${lat},${lng}`,
+      destination: JSON.stringify(destination),
+      passengerType,
+    },
+  });
+};
   const handleBack = () => {
     router.push('./Home'); 
   };
-  // History data
-  const historyData: HistoryItem[] = [
-    {
-      id: '1',
-      name: 'SM City Marilao',
-      address: 'MacArthur Highway, Maril...'
-    },
-    {
-      id: '2',
-      name: 'Kariktan ng Meycauayan',
-      address: 'Q2F5+R9C, Meycauayan, B...'
-    },
-    {
-      id: '3',
-      name: 'Valenzuela City People\'s Park',
-      address: 'MacArthur Highway, Valenz...'
-    },
-    {
-      id: '4',
-      name: 'Balagtas Town Center',
-      address: 'MacArthur Highway, Balagt...'
-    },
-    {
-      id: '5',
-      name: 'Philippine Arena',
-      address: 'Bocaue Road, Santa Maria, B...'
-    }
-  ];
-
+  
+  
+// import { MaterialCommunityIcons } from '@expo/vector-icons';
+<MaterialCommunityIcons name="map-marker" size={22} color="#7B86F4" />
   const renderHistoryItem = ({ item }: { item: HistoryItem }) => (
-    <View>
-      <View style={styles.historyItem}>
-        <View style={styles.historyContent}>
-          <View style={styles.iconContainer}>
-            <Ionicons name="time-outline" size={20} color="#FFF" />
-          </View>
-          <View style={styles.historyTextContainer}>
-            <Text style={styles.historyTitle}>{item.name}</Text>
-            <Text style={styles.historyAddress}>{item.address}</Text>
-          </View>
+  <TouchableOpacity
+    onPress={() => {
+      if (originRef.current) {
+        originRef.current.setAddressText(item.name);
+      }
+      if (destinationRef.current) {
+        destinationRef.current.setAddressText(item.address);
+      }
+      setOrigin({ name: item.name });
+      setDestination(item.address);
+    }}
+    activeOpacity={0.7}
+  >
+    <View style={styles.historyItem}>
+      <View style={styles.historyContent}>
+        <View style={styles.iconContainer}>
+          <Ionicons name="time-outline" size={20} color="#FFF" />
         </View>
-        <TouchableOpacity style={styles.deleteButton}>
-          <Ionicons name="trash-outline" size={20} color="#FFF" />
-        </TouchableOpacity>
+        <View style={styles.historyTextContainer}>
+          <Text style={styles.historyTitle}>
+            {item.name}
+          </Text>
+          <Text style={{ color: '#8E8E93', fontWeight: 'bold' }}>  To  </Text>
+          <Text style={styles.historyAddress}>
+            {item.address}
+          </Text>
+        </View>
       </View>
-      <View style={styles.divider} />
+      <TouchableOpacity
+        style={styles.deleteButton}
+        onPress={() => {
+          setHistoryData(prev => prev.filter(h => h.id !== item.id));
+        }}
+      >
+        <Ionicons name="trash-outline" size={20} color="#FFF" />
+      </TouchableOpacity>
     </View>
-  );
+    <View style={styles.divider} />
+  </TouchableOpacity>
+);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -90,7 +168,7 @@ const RouteScreen = () => {
         <TouchableOpacity onPress={handleBack} style={styles.backButton}>
           <Ionicons name="chevron-back" size={24} color="#FFF" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Fare Easy</Text>
+        <Text style={styles.headerTitle}>FareEasy</Text>
         <View style={styles.placeholder} />
       </View>
       
@@ -98,139 +176,179 @@ const RouteScreen = () => {
       {/* Google Places Autocomplete for Origin */}
       <View style={styles.inputRow}>
         <View style={styles.locationMarker}>
-          <View style={styles.originMarker} />
+         <Ionicons name="locate" size={28} color="#7B86F4" />
         </View>
         <GooglePlacesAutocomplete
-          placeholder="Your location"
-          onPress={(data, details = null) => {
-            setOrigin(details); // Save origin details
-          }}
-          query={{
-            key: GOOGLE_MAPS_APIKEY,
-            language: 'en',
-          }}
-          fetchDetails={true}
-          styles={{
-            container: {
-              flex: 1,
-            },
-            textInput: {
-              backgroundColor: '#2A2D3A',
-              color: 'white',
-              borderRadius: 8,
-              paddingHorizontal: 16,
-              fontSize: 16,
-              height: 40,
-            },
-            listView: {
-              backgroundColor: '#1E2029', // Dark background for dropdown
-              borderRadius: 8,
-              marginHorizontal: 16,
-            },
-            row: {
-              backgroundColor: '#1E2029', // Match dropdown background
-              padding: 12,
-              borderBottomWidth: 1,
-              borderBottomColor: '#333',
-            },
-            description: {
-              color: 'white', // White text for dropdown items
-            },
-            predefinedPlacesDescription: {
-              color: '#7B86F4', // Highlight color for predefined places
-            },
-          }}
-        />
+  ref={originRef}
+  placeholder="Your location"
+  onPress={(data, details = null) => {
+    setOrigin(details); // Save origin details
+  }}
+  query={{
+    key: GOOGLE_MAPS_APIKEY,
+    language: 'en',
+  }}
+  fetchDetails={true}
+  enablePoweredByContainer={false}
+  styles={{
+    container: {
+      flex: 1,
+    },
+    textInput: {
+      backgroundColor: '#2A2D3A',
+      color: 'white',
+      borderRadius: 8,
+      paddingHorizontal: 16,
+      fontSize: 16,
+      height: 40,
+    },
+    listView: {
+      backgroundColor: '#272935',
+      borderRadius: 8,
+      position: 'absolute',
+      top: 40,
+      left: 0,
+      right: 0,
+      zIndex: 100,
+    },
+    row: {
+      backgroundColor: '#272935',
+      padding: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: '#333',
+    },
+    description: {
+      color: 'white',
+    },
+    predefinedPlacesDescription: {
+      color: '#7B86F4',
+    },
+  }}
+/>
       </View>
 
       {/* Google Places Autocomplete for Destination */}
       <View style={styles.inputRow}>
         <View style={styles.locationMarker}>
-          <View style={styles.destinationMarker} />
+         <MaterialCommunityIcons name="map-marker" size={22} color="#FF4D4D" />
         </View>
         <GooglePlacesAutocomplete
+          ref={destinationRef}
           placeholder="Choose destination"
           onPress={(data, details = null) => {
-            setDestination(details?.formatted_address || ''); // Save destination details as a string
+            setDestination(details); // Save destination details as an object
           }}
           query={{
             key: GOOGLE_MAPS_APIKEY,
             language: 'en',
           }}
           fetchDetails={true}
+          enablePoweredByContainer={false}
           styles={{
-            container: {
-              flex: 1,
-            },
-            textInput: {
-              backgroundColor: '#2A2D3A',
-              color: 'white',
-              borderRadius: 8,
-              paddingHorizontal: 16,
-              fontSize: 16,
-              height: 40,
-            },
-            listView: {
-              backgroundColor: '#1E2029', // Dark background for dropdown
-              borderRadius: 8,
-              marginHorizontal: 16,
-            },
-            row: {
-              backgroundColor: '#1E2029', // Match dropdown background
-              padding: 12,
-              borderBottomWidth: 1,
-              borderBottomColor: '#333',
-            },
-            description: {
-              color: 'white', // White text for dropdown items
-            },
-            predefinedPlacesDescription: {
-              color: '#7B86F4', // Highlight color for predefined places
-            },
-          }}
+    container: {
+      flex: 1,
+    },
+    textInput: {
+      backgroundColor: '#2A2D3A',
+      color: 'white',
+      borderRadius: 8,
+      paddingHorizontal: 16,
+      fontSize: 16,
+      height: 40,
+    },
+    listView: {
+      backgroundColor: '#272935',
+      borderRadius: 8,
+      position: 'absolute',
+      top: 40,
+      left: 0,
+      right: 0,
+      zIndex: 100,
+    },
+    row: {
+      backgroundColor: '#272935',
+      padding: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: '#333',
+    },
+    description: {
+      color: 'white',
+    },
+    predefinedPlacesDescription: {
+      color: '#7B86F4',
+    },
+  }}
         />
       </View>
         
-        {/* Transportation Mode Button */}
-        <View style={styles.inputRow}>
-          <View style={styles.locationMarker}>
-            <Ionicons name="car-outline" size={20} color="#FFF" />
-          </View>
-          <TouchableOpacity style={styles.transportButton}>
-            <Text style={styles.transportButtonText}>Transportation Mode</Text>
-          </TouchableOpacity>
-        </View>
-        
+       
         {/* Passenger Type Dropdown */}
-        <TouchableOpacity style={styles.dropdownButton}>
-          <Text style={styles.dropdownText}>{passengerType}</Text>
-          <Ionicons name="chevron-down" size={20} color="#333" />
+        <View style={{ position: 'relative', marginTop: 6 }}>
+  <TouchableOpacity
+    style={styles.dropdownButton}
+    onPress={() => setShowDropdown(!showDropdown)}
+  >
+    <Text style={styles.dropdownText}>{passengerType}</Text>
+    <Ionicons name="chevron-down" size={20} color="#333" />
+  </TouchableOpacity>
+  {showDropdown && (
+    <View style={styles.dropdownMenu}>
+      {passengerOptions.map(option => (
+        <TouchableOpacity
+          key={option}
+          style={styles.dropdownItem}
+          onPress={() => {
+            setPassengerType(option);
+            setShowDropdown(false);
+          }}
+        >
+          <Text style={styles.dropdownText}>{option}</Text>
         </TouchableOpacity>
+      ))}
+    </View>
+  )}
+</View>
    
       {/* Apply Button */}
   <TouchableOpacity
+    className="bg-cyan-500"
     style={styles.applyButton}
     onPress={handleApply}
   >
     <Text style={styles.applyButtonText}>Apply</Text>
   </TouchableOpacity>
 
-      {/* Pin Location Button */}
-      <TouchableOpacity style={styles.pinLocationButton}>
-        <View style={styles.pinMarkerContainer}>
-          <View style={styles.pinMarker} />
-        </View>
-        <Text style={styles.pinLocationText}>Pin location o Map</Text>
-      </TouchableOpacity>
-      
+     
+     
+
       {/* History Section */}
       <View style={styles.historySection}>
-        <Text style={styles.historyHeader}>History</Text>
+       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16 }}>
+  <Text style={styles.historyHeader}>Recent</Text>
+  {historyData.length > 0 && (
+    <TouchableOpacity
+     
+      onPress={() => {
+        Alert.alert(
+          'Clear Recent Searches',
+          'Are you sure you want to clear all recent searches?',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Clear', style: 'destructive', onPress: () => setHistoryData([]) },
+          ]
+        );
+      }}
+      style={{ padding: 8 }}
+    >
+      <Ionicons name="trash-outline" size={22} color="#FF4D4D" />
+    </TouchableOpacity>
+  )}
+</View>
         <FlatList
           data={historyData}
           renderItem={renderHistoryItem}
           keyExtractor={item => item.id}
-          scrollEnabled={false}
+          scrollEnabled={true}
         />
       </View>
       
@@ -243,7 +361,7 @@ const RouteScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1E2029',
+    backgroundColor: '#0f1c2e',
   },
   header: {
     flexDirection: 'row',
@@ -252,7 +370,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 20,
     paddingTop: StatusBar.currentHeight || 40, // Dynamically add padding for the status bar
-    backgroundColor: '#1E2029',
+  
   },
   backButton: {
     padding: 4,
@@ -273,6 +391,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 12,
+    marginHorizontal: 16, 
   },
   locationMarker: {
     width: 30,
@@ -323,16 +442,18 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   dropdownButton: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: 'white',
-    borderRadius: 8,
-    padding: 16,
-    marginTop: 6,
-  },
+  flexDirection: 'row',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  backgroundColor: 'gray',
+  borderRadius: 8,
+  padding: 16,
+  marginHorizontal: 16,
+  marginTop: 6,
+  position: 'relative', // <-- Add this
+},
   dropdownText: {
-    color: '#333',
+    color: 'white',
     fontSize: 16,
   },
   pinLocationButton: {
@@ -362,7 +483,7 @@ const styles = StyleSheet.create({
   },
   historySection: {
     flex: 1,
-    backgroundColor: '#1E2029',
+   
   },
   historyHeader: {
     color: 'white',
@@ -401,7 +522,8 @@ const styles = StyleSheet.create({
   },
   historyAddress: {
     color: '#8E8E93',
-    fontSize: 14,
+    fontSize: 16,
+    fontWeight: '500',
   },
   deleteButton: {
     padding: 8,
@@ -422,7 +544,7 @@ const styles = StyleSheet.create({
   applyButton: {
     margin: 16,
     padding: 16,
-    backgroundColor: '#2048F3',
+   
     borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
@@ -440,6 +562,22 @@ const styles = StyleSheet.create({
     
    
   },
+  dropdownMenu: {
+  backgroundColor: '#272935',
+  borderRadius: 8,
+  marginHorizontal: 0, 
+  marginTop: 2,
+  position: 'absolute', 
+  top: '100%',          
+  left: 0,
+  right: 0,
+  zIndex: 100,          
+},
+dropdownItem: {
+  padding: 14,
+  borderBottomWidth: 1,
+  borderBottomColor: '#333',
+},
   
 });
 
