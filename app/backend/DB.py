@@ -53,5 +53,18 @@ def save_transit():
         return jsonify({'status': 'success', 'message': 'Transit saved to history'}), 200
     except Exception as e:
         return jsonify({'status': 'error', 'message': f'Failed to save transit: {str(e)}'}), 500
+
+@app.route('/get-transit', methods=['GET'])
+def get_transit():
+    try:
+        transit_ref = db.collection('Transit')
+        transit = []
+        for doc in transit_ref.stream():
+            item = doc.to_dict()
+            item['id'] = doc.id
+            transit.append(item)
+        return jsonify({'transit': transit}), 200
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': f'Failed to fetch transit: {str(e)}'}), 500
 if __name__ == '__main__':
     app.run(debug=True)

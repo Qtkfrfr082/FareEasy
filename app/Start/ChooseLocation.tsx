@@ -223,7 +223,7 @@ const handleApply = () => {
       
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={handleBack} style={styles.backButton}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="chevron-back" size={24} color="#FFF" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>FareEasy</Text>

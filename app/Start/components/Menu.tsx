@@ -28,7 +28,7 @@ export default function Menu() {
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent  />
       {/* Header */}
       <View className="flex-row items-center justify-between mb-6">
-        <Feather name="arrow-left" size={24} color="white" onPress={handleBack}/>
+        <Feather name="arrow-left" size={24} color="white" onPress={() => router.back()}/>
         <Text style={{ color: 'white', fontSize: 24, fontFamily: 'Inter-Bold', marginBottom: 8, alignSelf: 'flex-start' }}>My Profile</Text>
         <Feather name="settings" size={24} color="white" />
       </View>

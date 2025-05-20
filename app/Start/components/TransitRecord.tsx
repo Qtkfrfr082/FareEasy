@@ -23,24 +23,41 @@ export default function RideWise() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
 
   // Convert fareHistory to state
-  const [fareHistory, setFareHistory] = useState([
-    {
-      id: '1',
-      date: '2025-05-08',
-      route: 'Bambang purok tres - Valenzuela City People’s Park',
-      origin: { latitude: 14.7863, longitude: 120.9251 },
-      destination: { latitude: 14.7000, longitude: 120.9550 },
-      fare: '$30',
-    },
-    {
-      id: '2',
-      date: '2025-01-21',
-      route: 'Balagtas Town Center (BU) - Taal',
-      origin: { latitude: 14.8202196, longitude: 120.8859178 },
-      destination: { latitude: 14.8145781, longitude: 120.9191482 },
-      fare: '$25',
-    },
-  ]);
+  const [fareHistory, setFareHistory] = useState<any[]>([]);
+
+  React.useEffect(() => {
+    fetch('https://donewithit-yk99.onrender.com/get-transit')
+      .then(res => res.json())
+      .then(data => {
+        // Expecting data.transit to be an array
+        if (Array.isArray(data.transit)) {
+          // Map backend data to expected format for display
+          setFareHistory(
+            data.transit.map((item: any, idx: number) => ({
+              id: item.id || idx.toString(),
+              date: item.date ? item.date.slice(0, 10) : '',
+              route: `${item.origin || ''} - ${item.destination || ''}`,
+              origin: item.steps && item.steps[0] && item.steps[0].start_location
+                ? {
+                    latitude: item.steps[0].start_location.lat,
+                    longitude: item.steps[0].start_location.lng,
+                  }
+                : { latitude: 0, longitude: 0 },
+              destination: item.steps && item.steps[item.steps.length - 1] && item.steps[item.steps.length - 1].end_location
+                ? {
+                    latitude: item.steps[item.steps.length - 1].end_location.lat,
+                    longitude: item.steps[item.steps.length - 1].end_location.lng,
+                  }
+                : { latitude: 0, longitude: 0 },
+              fare: item.totalFare ? `₱${item.totalFare}` : '',
+            }))
+          );
+        }
+      })
+      .catch(() => {
+        Alert.alert('Error', 'Failed to fetch transit history from server.');
+      });
+  }, []);
 
   const handleBack = () => {
     router.push('./Menu');
@@ -96,7 +113,7 @@ export default function RideWise() {
 
       {/* Header */}
       <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16, marginTop: 40, paddingHorizontal: 16 }}>
-        <TouchableOpacity onPress={handleBack}>
+        <TouchableOpacity onPress={() => router.back()}>
           <Ionicons name="chevron-back" size={24} color="white" />
         </TouchableOpacity>
         <Text
