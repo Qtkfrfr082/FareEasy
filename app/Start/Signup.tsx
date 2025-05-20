@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StatusBar, TextInput, TouchableOpacity, SafeAreaView, Image } from 'react-native';
 import { useRouter } from 'expo-router';
-
+import { Ionicons } from '@expo/vector-icons';
 const Signup = () => {
   const router = useRouter();
   const [fullName, setFullName] = useState('');
@@ -78,7 +78,11 @@ const Signup = () => {
               className="absolute right-4 top-4"
               onPress={() => setShowPassword(!showPassword)}
             >
-              <Text className="text-gray-400">⊚</Text>
+             <Ionicons
+                name={showPassword ? 'eye-off' : 'eye'}
+                size={24}
+                color="#9CA3AF"
+              />
             </TouchableOpacity>
           </View>
 

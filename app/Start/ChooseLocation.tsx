@@ -50,6 +50,30 @@ const RouteScreen = () => {
 React.useEffect(() => {
   AsyncStorage.setItem('recentHistory', JSON.stringify(historyData));
 }, [historyData]);
+React.useEffect(() => {
+    if (historyData.length === 0) return;
+    fetch('http://127.0.0.1:5000/recent-searches', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ recent: historyData }),
+    })
+      .then(async response => {
+      if (!response.ok) {
+        const errorData = await response.json();
+        Alert.alert('Error', errorData.message || 'Failed to send recent searches.');
+        return;
+      }
+      const data = await response.json();
+      // Optionally show a success message or handle the response
+      // Alert.alert('Success', data.message || 'Recent searches sent.');
+    })
+    .catch(error => {
+      Alert.alert('Network Error', 'Could not connect to the server. Please try again later.');
+      // Optionally log the error: console.error('Error sending recent searches:', error);
+    });
+}, [historyData]);
 
 React.useEffect(() => {
   if (originData && !hasSetOriginRef.current) {

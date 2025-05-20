@@ -141,22 +141,7 @@ const startLng = params.startLng ? parseFloat(params.startLng as string) : null;
       </View>
 
       {/* Quick Access Buttons */}
-      <View style={styles.quickAccessContainer}>
-        <TouchableOpacity style={styles.quickAccessButton} onPress={handleChooseLoc}>
-          <View style={styles.iconContainer}>
-            <Ionicons name="time-outline" size={16} color="#FFF" />
-          </View>
-          <Text style={styles.quickAccessText}>SM City Marilao</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.quickAccessButton}>
-          <View style={styles.iconContainer}>
-            <Ionicons name="time-outline" size={16} color="#FFF" />
-          </View>
-          <Text style={styles.quickAccessText}>Kariktan ng Meycauayan</Text>
-        </TouchableOpacity>
-        
-      </View>
+      
       
     </View>
   );
