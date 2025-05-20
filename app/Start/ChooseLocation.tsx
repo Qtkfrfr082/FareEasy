@@ -17,9 +17,11 @@ import { Ionicons , MaterialCommunityIcons} from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams} from 'expo-router';
 import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
 interface HistoryItem {
-  id: string;
+ id: string;
   name: string;
   address: string;
+  originCoords: { lat: number; lng: number };
+  destinationCoords?: { lat: number; lng: number };
 }
 const GOOGLE_MAPS_APIKEY = 'AIzaSyDh3IwX1o3v0Ud_YZJUtM_29LIetafzQAY'; // Replace with your API key
 const RouteScreen = () => {
@@ -52,7 +54,7 @@ React.useEffect(() => {
 }, [historyData]);
 React.useEffect(() => {
     if (historyData.length === 0) return;
-    fetch('http://127.0.0.1:5000/recent-searches', {
+    fetch('https://donewithit-yk99.onrender.com/recent-searches', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -95,41 +97,65 @@ const handleApply = () => {
     Alert.alert('Please select both origin and destination.');
     return;
   }
+
+  // Extract coordinates for origin
   const lat = origin.geometry?.location?.lat;
   const lng = origin.geometry?.location?.lng;
 
   // Get a readable origin label
   let originLabel = origin.name || origin.formatted_address || origin.vicinity || '';
+  let originCoords = null;
   if (!originLabel && origin.geometry?.location) {
-    originLabel = `Current Location (${lat},${lng})`;
+    originCoords = {
+      lat: origin.geometry.location.lat,
+      lng: origin.geometry.location.lng,
+    };
+    originLabel = '';
   }
 
-  // Get a readable destination label
-  let destinationLabel =
-    typeof destination === 'object' && destination !== null
-      ? destination.formatted_address || destination.name || destination.vicinity || ''
-      : (typeof destination === 'string' ? destination : '');
+  // Extract only needed fields for destination
+  let destinationLabel = '';
+  let destinationCoords = null;
+  if (typeof destination === 'object' && destination !== null) {
+    destinationLabel = destination.formatted_address || destination.name || destination.vicinity || '';
+    if (destination.geometry?.location) {
+      destinationCoords = {
+        lat: destination.geometry.location.lat,
+        lng: destination.geometry.location.lng,
+      };
+    }
+  } else if (typeof destination === 'string') {
+    destinationLabel = destination;
+  }
 
   setHistoryData(prev => {
-    const newItem = {
-      id: Date.now().toString(),
-      name: originLabel,
-      address: destinationLabel,
-    };
-    // Remove duplicates
-    const filtered = prev.filter(
-      item =>
-        item.name !== newItem.name ||
-        item.address !== newItem.address
-    );
-    return [newItem, ...filtered].slice(0, 10); // Keep only latest 10
-  });
+  const newItem = {
+    id: Date.now().toString(),
+    name: originLabel,
+    address: destinationLabel,
+    originCoords: {
+      lat,
+      lng,
+    },
+    ...(destinationCoords && { destinationCoords }),
+  };
+  // Remove duplicates
+  const filtered = prev.filter(
+    item =>
+      item.name !== newItem.name ||
+      item.address !== newItem.address
+  );
+  return [newItem, ...filtered].slice(0, 10); // Keep only latest 10
+});
 
   router.push({
     pathname: './components/RoutesMap',
     params: {
       origin: `${lat},${lng}`,
-      destination: JSON.stringify(destination),
+      destination: JSON.stringify({
+        label: destinationLabel,
+        ...(destinationCoords && { coords: destinationCoords }),
+      }),
       passengerType,
     },
   });
@@ -144,15 +170,23 @@ const handleApply = () => {
   const renderHistoryItem = ({ item }: { item: HistoryItem }) => (
   <TouchableOpacity
     onPress={() => {
-      if (originRef.current) {
-        originRef.current.setAddressText(item.name);
-      }
-      if (destinationRef.current) {
-        destinationRef.current.setAddressText(item.address);
-      }
-      setOrigin({ name: item.name });
-      setDestination(item.address);
-    }}
+  if (originRef.current) {
+    originRef.current.setAddressText(item.name);
+  }
+  if (destinationRef.current) {
+    destinationRef.current.setAddressText(item.address);
+  }
+  setOrigin({
+    name: item.name,
+    geometry: { location: { lat: item.originCoords.lat, lng: item.originCoords.lng } }
+  });
+  setDestination({
+    name: item.address,
+    geometry: item.destinationCoords
+      ? { location: { lat: item.destinationCoords.lat, lng: item.destinationCoords.lng } }
+      : undefined
+  });
+}}
     activeOpacity={0.7}
   >
     <View style={styles.historyItem}>

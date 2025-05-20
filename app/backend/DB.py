@@ -40,5 +40,18 @@ def get_recent_searches():
         recent.append(item)
     return jsonify({'recent': recent}), 200
 
+@app.route('/save-transit', methods=['POST'])
+def save_transit():
+    data = request.get_json()
+    if not data:
+        return jsonify({'status': 'error', 'message': 'No transit data provided'}), 400
+
+    try:
+        # Save each transit as a document in the 'Transit' collection
+        transit_ref = db.collection('Transit').document()
+        transit_ref.set(data)
+        return jsonify({'status': 'success', 'message': 'Transit saved to history'}), 200
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': f'Failed to save transit: {str(e)}'}), 500
 if __name__ == '__main__':
     app.run(debug=True)

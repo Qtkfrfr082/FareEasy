@@ -17,6 +17,7 @@ import {
 import MapView, { Marker, Polyline } from 'react-native-maps';
 import { Ionicons, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+
 import axios from 'axios';
 
 const { width } = Dimensions.get('window');
@@ -253,6 +254,41 @@ const discountedFare = isDiscounted ? totalFare * 0.8 : totalFare;
     }
   }
 }, [routeData]);
+
+const saveTransitToBackend = async () => {
+    try {
+      // Prepare minimal transit data (customize as needed)
+      const transitData = {
+        origin: leg.start_address,
+        destination: leg.end_address,
+        distance: leg.distance?.text,
+        duration: leg.duration?.text,
+        totalFare: discountedFare,
+        passengerType,
+        date: new Date().toISOString(),
+        steps: steps.map((step: any, idx: number) => ({
+          instruction: step.html_instructions?.replace(/<[^>]+>/g, ''),
+          vehicle: getVehicleType(step),
+          fare: getFare(step, idx),
+          distance: step.distance?.text,
+          duration: step.duration?.text,
+        })),
+      };
+      const response = await fetch('https://donewithit-yk99.onrender.com/save-transit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(transitData),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        Alert.alert('Error', data.message || 'Failed to save transit.');
+      } else {
+        Alert.alert('Saved', data.message || 'Transit saved to history!');
+      }
+    } catch (error) {
+      Alert.alert('Network Error', 'Could not connect to the server. Please try again later.');
+    }
+  };
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#0f1c2e' }}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
@@ -277,6 +313,9 @@ const discountedFare = isDiscounted ? totalFare * 0.8 : totalFare;
         }}>
           Ride Wise
         </Text>
+         <TouchableOpacity onPress={saveTransitToBackend} style={{ marginLeft: 12 }}>
+          <Ionicons name="heart-outline" size={28} color="#FF4D4D" />
+        </TouchableOpacity>
       </View>
 
       {/* Map View */}
