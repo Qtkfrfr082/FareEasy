@@ -27,7 +27,7 @@ export default function AppInformationScreen() {
         {/* Header with back button */}
         <View className="flex-row items-center mb-6">
           <TouchableOpacity className="mr-4">
-            <Ionicons name="chevron-back" size={24} color="white" onPress={handleBack}/>
+            <Ionicons name="chevron-back" size={24} color="white" onPress={() => router.back()}/>
           </TouchableOpacity>
           <Text style={{ color: 'white', fontSize: 24, fontFamily: 'Inter-Bold'}}>App Information</Text>
         </View>

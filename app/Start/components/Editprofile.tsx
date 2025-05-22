@@ -88,7 +88,7 @@ export default function Editprofile() {
     <ScrollView className="flex-1 bg-[#0f1c2e] px-6 pt-12">
       {/* Header */}
       <View className="flex-row items-center mb-6">
-        <Feather name="arrow-left" size={24} color="white" onPress={handleBack}/>
+        <Feather name="arrow-left" size={24} color="white" onPress={() => router.back()}/>
         <Text className="ml-4" style={{ color: 'white', fontSize: 24, fontFamily: 'Inter-Bold' }}>Edit Profile</Text>
       </View>
 

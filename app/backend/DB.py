@@ -10,6 +10,11 @@ cred = credentials.Certificate("fareeary-59dd0-firebase-adminsdk-fbsvc-bf1882cb1
 firebase_admin.initialize_app(cred)
 db = firestore.client()
 
+
+@app.route('/')
+def home():
+    return jsonify({'Running'})
+    
 @app.route('/login', methods=['POST'])
 def login():
     data = request.get_json()

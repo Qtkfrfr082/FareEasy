@@ -68,7 +68,7 @@ export default function Changepassword() {
       <View className="flex-1 px-5 pt-10">
         {/* Back button */}
         <TouchableOpacity className="mb-5">
-          <Ionicons name="chevron-back" size={24} color="white" onPress={handleBack}/>
+          <Ionicons name="chevron-back" size={24} color="white" onPress={() => router.back()}/>
         </TouchableOpacity>
         
         {/* Header */}
