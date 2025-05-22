@@ -8,7 +8,7 @@ import { signInWithCredential, GoogleAuthProvider } from 'firebase/auth';
 
 import { auth } from './firebaseconfig'; // Adjust path if needed
 import { useAuthRequest, makeRedirectUri, ResponseType } from 'expo-auth-session';
-
+import AsyncStorage from '@react-native-async-storage/async-storage';
 console.log(makeRedirectUri({ scheme: 'FareEasy' }));
 WebBrowser.maybeCompleteAuthSession();
 
@@ -68,7 +68,7 @@ const Signup = () => {
     return;
   }
   try {
-    const response = await fetch('http://localhost:5000/signup', { // Change to your backend URL if needed
+    const response = await fetch('https://donewithit-yk99.onrender.com/signup', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -79,6 +79,10 @@ const Signup = () => {
     });
     const data = await response.json();
     if (response.ok) {
+      // Save user_id to AsyncStorage
+      if (data.user_id) {
+        await AsyncStorage.setItem('user_id', data.user_id);
+      }
       alert('Signup successful!');
       router.replace('./Home');
     } else {

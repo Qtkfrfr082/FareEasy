@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useFonts } from 'expo-font';
 import { Calendar } from 'react-native-calendars';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const GOOGLE_MAPS_APIKEY = 'AIzaSyDh3IwX1o3v0Ud_YZJUtM_29LIetafzQAY';
 
@@ -25,50 +26,59 @@ export default function RideWise() {
   // Convert fareHistory to state
   const [fareHistory, setFareHistory] = useState<any[]>([]);
 
-  React.useEffect(() => {
-  fetch('https://donewithit-yk99.onrender.com/get-transit')
-    .then(res => res.json())
-    .then(data => {
-      if (Array.isArray(data.transit)) {
-        setFareHistory(
-          data.transit.map((item: any, idx: number) => ({
-            id: item.id || idx.toString(),
-            date: item.date ? item.date.slice(0, 10) : '',
-            route: `${item.origin || ''} - ${item.destination || ''}`,
-            origin: item.originCoords
-              ? {
-                  latitude: item.originCoords.lat,
-                  longitude: item.originCoords.lng,
-                }
-              : (item.steps && item.steps[0] && item.steps[0].start_location
-                  ? {
-                      latitude: item.steps[0].start_location.lat,
-                      longitude: item.steps[0].start_location.lng,
-                    }
-                  : { latitude: 0, longitude: 0 }),
-            destination: item.destinationCoords
-              ? {
-                  latitude: item.destinationCoords.lat,
-                  longitude: item.destinationCoords.lng,
-                }
-              : (item.steps && item.steps[item.steps.length - 1] && item.steps[item.steps.length - 1].end_location
-                  ? {
-                      latitude: item.steps[item.steps.length - 1].end_location.lat,
-                      longitude: item.steps[item.steps.length - 1].end_location.lng,
-                    }
-                  : { latitude: 0, longitude: 0 }),
-            fare: item.totalFare ? `₱${Number(item.totalFare).toFixed(0)}` : '',
-            passengerType: item.passengerType || 'Regular',
-            legs: item.fullRouteData?.legs || [],
-            fullRouteData: item.fullRouteData || item, // <-- THIS LINE fetches the saved Routing data
-          }))
-        );
+ React.useEffect(() => {
+    const fetchTransitHistory = async () => {
+      const userId = await AsyncStorage.getItem('user_id');
+      if (!userId) {
+        Alert.alert('Error', 'User not logged in.');
+        return;
       }
-    })
-    .catch(() => {
-      Alert.alert('Error', 'Failed to fetch transit history from server.');
-    });
-}, []);
+      fetch(`https://donewithit-yk99.onrender.com/get-transit?user_id=${userId}`)
+        .then(res => res.json())
+        .then(data => {
+          if (Array.isArray(data.transit)) {
+            setFareHistory(
+              data.transit.map((item: any, idx: number) => ({
+                id: item.id || idx.toString(),
+                date: item.date ? item.date.slice(0, 10) : '',
+                route: `${item.origin || ''} - ${item.destination || ''}`,
+                origin: item.originCoords
+                  ? {
+                      latitude: item.originCoords.lat,
+                      longitude: item.originCoords.lng,
+                    }
+                  : (item.steps && item.steps[0] && item.steps[0].start_location
+                      ? {
+                          latitude: item.steps[0].start_location.lat,
+                          longitude: item.steps[0].start_location.lng,
+                        }
+                      : { latitude: 0, longitude: 0 }),
+                destination: item.destinationCoords
+                  ? {
+                      latitude: item.destinationCoords.lat,
+                      longitude: item.destinationCoords.lng,
+                    }
+                  : (item.steps && item.steps[item.steps.length - 1] && item.steps[item.steps.length - 1].end_location
+                      ? {
+                          latitude: item.steps[item.steps.length - 1].end_location.lat,
+                          longitude: item.steps[item.steps.length - 1].end_location.lng,
+                        }
+                      : { latitude: 0, longitude: 0 }),
+                fare: item.totalFare ? `₱${Number(item.totalFare).toFixed(0)}` : '',
+                passengerType: item.passengerType || 'Regular',
+                legs: item.fullRouteData?.legs || [],
+                fullRouteData: item.fullRouteData || item,
+              }))
+            );
+          }
+        })
+        .catch(() => {
+          Alert.alert('Error', 'Failed to fetch transit history from server.');
+        });
+    };
+
+    fetchTransitHistory();
+  }, []);
 
   const handleBack = () => {
     router.push('./Menu');

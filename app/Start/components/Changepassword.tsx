@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, StatusBar, TouchableOpacity, SafeAreaView } from 'react-native';
+import React, { useState,  } from 'react';
+import { View, Text, TextInput, StatusBar, TouchableOpacity, SafeAreaView, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useFonts } from 'expo-font';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function Changepassword() {
     const router = useRouter();
@@ -15,6 +16,44 @@ export default function Changepassword() {
         'Inter-Regular': require('../../../assets/fonts/Inter_18pt-Regular.ttf'), // Replace with your font path
       });
     
+      const handleResetPassword = async () => {
+    if (!password || !confirmPassword) {
+      alert('Please fill in both fields.');
+      return;
+    }
+    if (password.length < 8) {
+      alert('Password must be at least 8 characters.');
+      return;
+    }
+    if (password !== confirmPassword) {
+      alert('Passwords do not match.');
+      return;
+    }
+    const userId = await AsyncStorage.getItem('user_id');
+    if (!userId) {
+      alert('User not logged in.');
+      return;
+    }
+    try {
+      const res = await fetch('https://donewithit-yk99.onrender.com/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: userId,
+          new_password: password,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert('Password changed successfully!');
+        router.push('./Menu');
+      } else {
+        alert(data.message || 'Failed to change password.');
+      }
+    } catch (e) {
+      alert('Network error. Please try again.');
+    }
+  };
       if (!fontsLoaded) {
         return null; // Render nothing until the font is loaded
       }
@@ -101,11 +140,11 @@ export default function Changepassword() {
         </View>
         
         {/* Reset Password Button */}
-        <TouchableOpacity className="bg-cyan-500 py-4 rounded-xl mt-8">
-          <Text style={{ color: 'white', fontSize: 16, fontFamily: 'Inter-Regular',  alignSelf: 'center' }}>
-            Reset Password
-          </Text>
-        </TouchableOpacity>
+        <TouchableOpacity className="bg-cyan-500 py-4 rounded-xl mt-8" onPress={handleResetPassword}>
+        <Text style={{ color: 'white', fontSize: 16, fontFamily: 'Inter-Regular', alignSelf: 'center' }}>
+          Reset Password
+        </Text>
+      </TouchableOpacity>
 
         {/* Bottom Indicator */}
         <View className="absolute bottom-8 left-0 right-0 items-center">

@@ -16,6 +16,8 @@ import {
 import MapView, { Marker, Polyline } from 'react-native-maps';
 import { Ionicons, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 import axios from 'axios';
 
 // Import fare helpers from utils
@@ -27,6 +29,11 @@ import {
   getStepFare,
   getRouteTotalFare,
 } from '../util/fareutils';
+
+let userId: string | null = null;
+AsyncStorage.getItem('user_id').then(id => {
+  userId = id;
+});
 
 const { width } = Dimensions.get('window');
 const GOOGLE_MAPS_APIKEY = 'AIzaSyDh3IwX1o3v0Ud_YZJUtM_29LIetafzQAY';
@@ -165,44 +172,49 @@ export default function RideWise() {
   }, [routeData]);
 
   const saveTransitToBackend = async () => {
-    try {
-      // Only save the minimal Google Directions API-like structure
-      const minimalRouteData = {
-        bounds: routeData.bounds,
-        copyrights: routeData.copyrights,
-        fare: routeData.fare,
-        legs: routeData.legs,
-        overview_polyline: routeData.overview_polyline,
-        summary: routeData.summary,
-        warnings: routeData.warnings,
-        waypoint_order: routeData.waypoint_order,
-      };
-
-      const transitData = {
-        fullRouteData: minimalRouteData,
-        passengerType,
-        date: new Date().toISOString(),
-        totalFare: discountedFare,
-      };
-
-      const response = await fetch('https://donewithit-yk99.onrender.com/save-transit', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(transitData),
-      });
-      const data = await response.json();
-      if (!response.ok) {
-        Alert.alert('Error', data.message || 'Failed to save transit.');
-      } else {
-        Alert.alert('Saved', data.message || 'Transit saved to history!');
-      }
-    } catch (error) {
-      Alert.alert('Network Error', 'Could not connect to the server. Please try again later.');
+  try {
+    // Always get the latest user_id from AsyncStorage
+    const userId = await AsyncStorage.getItem('user_id');
+    if (!userId) {
+      Alert.alert('Error', 'User not logged in.');
+      return;
     }
-  };
 
-  // Example: You must implement the logic to get both routes
-  // TODO: Replace these with actual route data logic if available
+    // Only save the minimal Google Directions API-like structure
+    const minimalRouteData = {
+      bounds: routeData.bounds,
+      copyrights: routeData.copyrights,
+      fare: routeData.fare,
+      legs: routeData.legs,
+      overview_polyline: routeData.overview_polyline,
+      summary: routeData.summary,
+      warnings: routeData.warnings,
+      waypoint_order: routeData.waypoint_order,
+    };
+
+    const transit = {
+      fullRouteData: minimalRouteData,
+      passengerType,
+      date: new Date().toISOString(),
+      totalFare: discountedFare,
+    };
+
+    const response = await fetch('https://donewithit-yk99.onrender.com/save-transit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: userId, transit }),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      Alert.alert('Error', data.message || 'Failed to save transit.');
+    } else {
+      Alert.alert('Saved', data.message || 'Transit saved to history!');
+    }
+  } catch (error) {
+    Alert.alert('Network Error', 'Could not connect to the server. Please try again later.');
+  }
+};
+
   const shortestRouteData = routeData; // Route with shortest distance
   const cheapestRouteData = routeData; // Route with lowest fare
   const selectedRouteData = routeType === 'shortest' ? shortestRouteData : cheapestRouteData;

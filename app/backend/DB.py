@@ -50,6 +50,63 @@ def signup():
     except Exception as e:
         return jsonify({'status': 'error', 'message': f'Failed to signup: {str(e)}'}), 500
 
+@app.route('/get-user', methods=['GET'])
+def get_user():
+    user_id = request.args.get('user_id')
+    if not user_id:
+        return jsonify({'status': 'error', 'message': 'Missing user_id'}), 400
+    try:
+        user_ref = db.collection('Users').document(user_id)
+        user_doc = user_ref.get()
+        if not user_doc.exists:
+            return jsonify({'status': 'error', 'message': 'User not found'}), 404
+        user_data = user_doc.to_dict()
+        return jsonify({'status': 'success', 'user': {
+            'name': user_data.get('name', ''),
+            'email': user_data.get('email', '')
+        }}), 200
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': f'Failed to fetch user: {str(e)}'}), 500
+    
+@app.route('/change-password', methods=['POST'])
+def change_password():
+    data = request.get_json()
+    user_id = data.get('user_id')
+    new_password = data.get('new_password')
+    if not user_id or not new_password:
+        return jsonify({'status': 'error', 'message': 'Missing user_id or new_password'}), 400
+    try:
+        user_ref = db.collection('Users').document(user_id)
+        user_doc = user_ref.get()
+        if not user_doc.exists:
+            return jsonify({'status': 'error', 'message': 'User not found'}), 404
+        user_ref.update({'password': new_password})
+        return jsonify({'status': 'success', 'message': 'Password updated successfully'}), 200
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': f'Failed to update password: {str(e)}'}), 500
+
+@app.route('/update-user', methods=['POST'])
+def update_user():
+    data = request.get_json()
+    user_id = data.get('user_id')
+    if not user_id:
+        return jsonify({'status': 'error', 'message': 'Missing user_id'}), 400
+    update_fields = {}
+    for field in ['name', 'email', 'phone', 'address']:
+        if field in data:
+            update_fields[field] = data[field]
+    if not update_fields:
+        return jsonify({'status': 'error', 'message': 'No fields to update'}), 400
+    try:
+        user_ref = db.collection('Users').document(user_id)
+        user_doc = user_ref.get()
+        if not user_doc.exists:
+            return jsonify({'status': 'error', 'message': 'User not found'}), 404
+        user_ref.update(update_fields)
+        return jsonify({'status': 'success', 'message': 'User profile updated successfully'}), 200
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': f'Failed to update user: {str(e)}'}), 500
+    
 @app.route('/recent-searches', methods=['POST'])
 def receive_recent_searches():
     data = request.get_json()

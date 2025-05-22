@@ -1,21 +1,51 @@
-import React, { useState } from 'react';
-import { View, StatusBar, Text, TextInput, TouchableOpacity, Image, ScrollView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, StatusBar, Text, TextInput, TouchableOpacity, Image, ScrollView, Alert } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useFonts } from 'expo-font';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 
 export default function Editprofile() {
     const router = useRouter();
     
-  const [name, setName] = useState('Richard Kyle Gonzales');
-  const [email, setEmail] = useState('rk.gonzales@gmail.com');
-  const [phone, setPhone] = useState('+639123456789');
-  const [address, setAddress] = useState('123 Mockingbird Lane, Figtown, Z20000');
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [address, setAddress] = useState('');
   const [fontsLoaded] = useFonts({
-        'Inter-Bold': require('../../../assets/fonts/Inter_18pt-Bold.ttf'), // Replace with your font path
-        'Inter-Regular': require('../../../assets/fonts/Inter_18pt-Regular.ttf'), // Replace with your font path
-      });
+    'Inter-Bold': require('../../../assets/fonts/Inter_18pt-Bold.ttf'),
+    'Inter-Regular': require('../../../assets/fonts/Inter_18pt-Regular.ttf'),
+  });
+
+  // Fetch user info on mount
+  useEffect(() => {
+    const fetchProfile = async () => {
+      const userId = await AsyncStorage.getItem('user_id');
+      if (!userId) return;
+      try {
+        const res = await fetch(`https://donewithit-yk99.onrender.com/get-user?user_id=${userId}`);
+        const data = await res.json();
+        if (res.ok && data.user) {
+          setName(data.user.name || '');
+          setEmail(data.user.email || '');
+          setPhone(data.user.phone || '');
+          setAddress(data.user.address || '');
+        } else {
+          setName('');
+          setEmail('');
+          setPhone('');
+          setAddress('');
+        }
+      } catch (e) {
+        setName('');
+        setEmail('');
+        setPhone('');
+        setAddress('');
+      }
+    };
+    fetchProfile();
+  }, []);
     
       if (!fontsLoaded) {
         return null; // Render nothing until the font is loaded
@@ -23,6 +53,36 @@ export default function Editprofile() {
   const handleBack = () => {
     // Add logic for opening the menu (e.g., navigate to a menu screen or toggle a drawer)
     router.push('./Menu'); 
+  };
+
+  const handleSave = async () => {
+    const userId = await AsyncStorage.getItem('user_id');
+    if (!userId) {
+      Alert.alert('Error', 'User not logged in.');
+      return;
+    }
+    try {
+      const res = await fetch('https://donewithit-yk99.onrender.com/update-user', {
+        method: 'POST', // or 'PUT' if your backend expects it
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: userId,
+          name,
+          email,
+          phone,
+          address,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        Alert.alert('Success', 'Profile updated!');
+       
+      } else {
+        Alert.alert('Error', data.message || 'Failed to update profile.');
+      }
+    } catch (e) {
+      Alert.alert('Error', 'Network error. Please try again.');
+    }
   };
   return (
     <ScrollView className="flex-1 bg-[#0f1c2e] px-6 pt-12">
@@ -50,8 +110,8 @@ export default function Editprofile() {
       </View>
 
       {/* Save Button */}
-      <TouchableOpacity className="bg-cyan-500 py-4 rounded-xl mt-8">
-        <Text className="text-center "style={{ color: 'white', fontSize: 16, fontFamily: 'Inter-Regular'}}>Save Changes</Text>
+      <TouchableOpacity className="bg-cyan-500 py-4 rounded-xl mt-8" onPress={handleSave}>
+        <Text className="text-center " style={{ color: 'white', fontSize: 16, fontFamily: 'Inter-Regular' }}>Save Changes</Text>
       </TouchableOpacity>
     </ScrollView>
   );

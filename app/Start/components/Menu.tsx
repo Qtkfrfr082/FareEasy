@@ -1,8 +1,9 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StatusBar,Image,ScrollView } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, TouchableOpacity, StatusBar,Image,ScrollView, Alert } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useFonts } from 'expo-font';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function Menu() {
   const router = useRouter();
@@ -11,6 +12,26 @@ export default function Menu() {
       'Inter-Regular': require('../../../assets/fonts/Inter_18pt-Regular.ttf'), // Replace with your font path
     });
   
+    const [userName, setUserName] = useState('');
+    const [userEmail, setUserEmail] = useState('');
+
+  useEffect(() => {
+    const fetchUserInfo = async () => {
+      const userId = await AsyncStorage.getItem('user_id');
+      if (!userId) return;
+      try {
+        const res = await fetch(`https://donewithit-yk99.onrender.com/get-user?user_id=${userId}`);
+        const data = await res.json();
+        if (res.ok && data.user) {
+          setUserName(data.user.name || '');
+          setUserEmail(data.user.email || '');
+        }
+      } catch (e) {
+        Alert.alert('Error', 'Failed to fetch user info.');
+      }
+    };
+    fetchUserInfo();
+  }, []);
     if (!fontsLoaded) {
       return null; // Render nothing until the font is loaded
     }
@@ -39,8 +60,8 @@ export default function Menu() {
           source={require('../../../assets/avatar-boy.png')} // Replace with your image
           className="w-32 h-32 rounded-full mb-3"
         />
-        <Text style={{ color: 'white', fontSize: 16, fontFamily: 'Inter-Regular'}}>Richard Kyle Gonzales</Text>
-        <Text style={{ color: 'gray', fontSize: 12, fontFamily: 'Inter-Regular'}}>rk.gonzales@gmail.com</Text>
+     <Text style={{ color: 'white', fontSize: 16, fontFamily: 'Inter-Regular' }}>{userName}</Text>
+        <Text style={{ color: 'gray', fontSize: 12, fontFamily: 'Inter-Regular' }}>{userEmail}</Text>
       </View>
 
       {/* Option List */}

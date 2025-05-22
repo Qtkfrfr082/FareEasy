@@ -16,6 +16,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons , MaterialCommunityIcons} from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams} from 'expo-router';
 import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
+
 interface HistoryItem {
  id: string;
   name: string;
@@ -23,6 +24,9 @@ interface HistoryItem {
   originCoords: { lat: number; lng: number };
   destinationCoords?: { lat: number; lng: number };
 }
+// Remove top-level await; fetch userId inside a useEffect or async function if needed
+
+
 const GOOGLE_MAPS_APIKEY = 'AIzaSyDh3IwX1o3v0Ud_YZJUtM_29LIetafzQAY'; // Replace with your API key
 const RouteScreen = () => {
   const router = useRouter();
@@ -36,46 +40,30 @@ const RouteScreen = () => {
   const [historyData, setHistoryData] = useState<HistoryItem[]>([]);
   const ITEMS_PER_PAGE = 5;
   const [currentPage, setCurrentPage] = useState(1);
-
+  
 
   const [passengerType, setPassengerType] = useState('Regular');
   const [showDropdown, setShowDropdown] = useState(false);
 
   const passengerOptions = ['Student', 'PWD', 'Senior Citizen', 'Regular'];
-  React.useEffect(() => {
-  AsyncStorage.getItem('recentHistory').then(data => {
-    if (data) setHistoryData(JSON.parse(data));
+ const [userId, setUserId] = useState<string | null>(null);
+React.useEffect(() => {
+  AsyncStorage.getItem('user_id').then(id => {
+    setUserId(id);
   });
 }, []);
+console.log('User ID:', userId); 
 
-// Save history to AsyncStorage whenever it changes
 React.useEffect(() => {
-  AsyncStorage.setItem('recentHistory', JSON.stringify(historyData));
-}, [historyData]);
-React.useEffect(() => {
-    if (historyData.length === 0) return;
-    fetch('https://donewithit-yk99.onrender.com/recent-searches', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ recent: historyData }),
-    })
-      .then(async response => {
-      if (!response.ok) {
-        const errorData = await response.json();
-        Alert.alert('Error', errorData.message || 'Failed to send recent searches.');
-        return;
-      }
+  if (!userId) return;
+  fetch('https://donewithit-yk99.onrender.com/recent-searches?user_id=' + userId)
+    .then(async response => {
+      if (!response.ok) return;
       const data = await response.json();
-      // Optionally show a success message or handle the response
-      // Alert.alert('Success', data.message || 'Recent searches sent.');
+      if (Array.isArray(data.recent)) setHistoryData(data.recent);
     })
-    .catch(error => {
-      Alert.alert('Network Error', 'Could not connect to the server. Please try again later.');
-      // Optionally log the error: console.error('Error sending recent searches:', error);
-    });
-}, [historyData]);
+    .catch(() => {});
+}, [userId]);
 
 React.useEffect(() => {
   if (originData && !hasSetOriginRef.current) {
