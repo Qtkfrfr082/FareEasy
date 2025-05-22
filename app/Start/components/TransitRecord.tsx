@@ -26,38 +26,49 @@ export default function RideWise() {
   const [fareHistory, setFareHistory] = useState<any[]>([]);
 
   React.useEffect(() => {
-    fetch('https://donewithit-yk99.onrender.com/get-transit')
-      .then(res => res.json())
-      .then(data => {
-        // Expecting data.transit to be an array
-        if (Array.isArray(data.transit)) {
-          // Map backend data to expected format for display
-          setFareHistory(
-            data.transit.map((item: any, idx: number) => ({
-              id: item.id || idx.toString(),
-              date: item.date ? item.date.slice(0, 10) : '',
-              route: `${item.origin || ''} - ${item.destination || ''}`,
-              origin: item.steps && item.steps[0] && item.steps[0].start_location
-                ? {
-                    latitude: item.steps[0].start_location.lat,
-                    longitude: item.steps[0].start_location.lng,
-                  }
-                : { latitude: 0, longitude: 0 },
-              destination: item.steps && item.steps[item.steps.length - 1] && item.steps[item.steps.length - 1].end_location
-                ? {
-                    latitude: item.steps[item.steps.length - 1].end_location.lat,
-                    longitude: item.steps[item.steps.length - 1].end_location.lng,
-                  }
-                : { latitude: 0, longitude: 0 },
-              fare: item.totalFare ? `₱${item.totalFare}` : '',
-            }))
-          );
-        }
-      })
-      .catch(() => {
-        Alert.alert('Error', 'Failed to fetch transit history from server.');
-      });
-  }, []);
+  fetch('https://donewithit-yk99.onrender.com/get-transit')
+    .then(res => res.json())
+    .then(data => {
+      if (Array.isArray(data.transit)) {
+        setFareHistory(
+          data.transit.map((item: any, idx: number) => ({
+            id: item.id || idx.toString(),
+            date: item.date ? item.date.slice(0, 10) : '',
+            route: `${item.origin || ''} - ${item.destination || ''}`,
+            origin: item.originCoords
+              ? {
+                  latitude: item.originCoords.lat,
+                  longitude: item.originCoords.lng,
+                }
+              : (item.steps && item.steps[0] && item.steps[0].start_location
+                  ? {
+                      latitude: item.steps[0].start_location.lat,
+                      longitude: item.steps[0].start_location.lng,
+                    }
+                  : { latitude: 0, longitude: 0 }),
+            destination: item.destinationCoords
+              ? {
+                  latitude: item.destinationCoords.lat,
+                  longitude: item.destinationCoords.lng,
+                }
+              : (item.steps && item.steps[item.steps.length - 1] && item.steps[item.steps.length - 1].end_location
+                  ? {
+                      latitude: item.steps[item.steps.length - 1].end_location.lat,
+                      longitude: item.steps[item.steps.length - 1].end_location.lng,
+                    }
+                  : { latitude: 0, longitude: 0 }),
+            fare: item.totalFare ? `₱${Number(item.totalFare).toFixed(0)}` : '',
+            passengerType: item.passengerType || 'Regular',
+            legs: item.fullRouteData?.legs || [],
+            fullRouteData: item.fullRouteData || item, // <-- THIS LINE fetches the saved Routing data
+          }))
+        );
+      }
+    })
+    .catch(() => {
+      Alert.alert('Error', 'Failed to fetch transit history from server.');
+    });
+}, []);
 
   const handleBack = () => {
     router.push('./Menu');
@@ -106,6 +117,41 @@ export default function RideWise() {
   if (!fontsLoaded) {
     return null;
   }
+
+ const handleHistoryClick = (item: any) => {
+  // Check that all required fields exist in the backend data
+  if (
+    !item.fullRouteData ||
+    !item.fullRouteData.bounds ||
+    !item.fullRouteData.legs ||
+    !item.fullRouteData.overview_polyline
+  ) {
+    Alert.alert('Error', 'No complete route data available for this record.');
+    return;
+  }
+
+  // Only send the minimal Google Directions API-like structure
+  const routeData = {
+    bounds: item.fullRouteData.bounds,
+    copyrights: item.fullRouteData.copyrights,
+    fare: item.fullRouteData.fare,
+    legs: item.fullRouteData.legs,
+    overview_polyline: item.fullRouteData.overview_polyline,
+    summary: item.fullRouteData.summary,
+    warnings: item.fullRouteData.warnings,
+    waypoint_order: item.fullRouteData.waypoint_order,
+  };
+
+  console.log('Sending routeData:', routeData);
+
+  router.push({
+    pathname: './Routing',
+    params: { 
+      routeData: JSON.stringify(routeData),
+      passengerType: item.passengerType || 'Regular',
+    }
+  });
+};
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#0f1c2e' }}>
@@ -204,8 +250,8 @@ export default function RideWise() {
     }}
     markedDates={generateMarkedDates()}
     theme={{
-      backgroundColor: '#1E2029',
-      calendarBackground: '#1E2029',
+      backgroundColor: '#0f1c2e',
+      calendarBackground: '#0f1c2e',
       textSectionTitleColor: '#FFFFFF',
       selectedDayBackgroundColor: '#06B6D4',
       selectedDayTextColor: '#FFFFFF',
@@ -226,8 +272,8 @@ export default function RideWise() {
     }}
     markedDates={generateMarkedDates()}
     theme={{
-      backgroundColor: '#1E2029',
-      calendarBackground: '#1E2029',
+      backgroundColor: '#0f1c2e',
+      calendarBackground: '#0f1c2e',
       textSectionTitleColor: '#FFFFFF',
       selectedDayBackgroundColor: '#06B6D4',
       selectedDayTextColor: '#FFFFFF',
@@ -245,70 +291,87 @@ export default function RideWise() {
         <Text style={{ color: '#9CA3AF', fontSize: 16, marginBottom: 8 }}>Recent Fare History</Text>
 
         {viewMode === 'list' ? (
-          // List View
-          <FlatList
+         <FlatList
             data={filterFareHistory()}
             keyExtractor={(item) => item.id}
             renderItem={({ item }) => (
-              <View
-                style={{
-                  backgroundColor: '#2A2D3A',
-                  borderRadius: 8,
-                  marginBottom: 16,
-                  padding: 12,
-                  flexDirection: 'row',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                }}
-              >
-                <View>
-                  <Text style={{ color: 'white', fontSize: 16, fontWeight: 'bold' }}>{item.date}</Text>
-                  <Text style={{ color: '#9CA3AF', fontSize: 14, marginTop: 4 }}>
-                    Start: {item.route.split(' - ')[0]}
-                  </Text>
-                  <Text style={{ color: '#9CA3AF', fontSize: 14, marginTop: 4 }}>
-                    End: {item.route.split(' - ')[1]}
-                  </Text>
-                  <Text style={{ color: '#06B6D4', fontSize: 14, marginTop: 4 }}>Fare: {item.fare}</Text>
-                </View>
-                <TouchableOpacity onPress={() => deleteFareHistory(item.id)}>
-                  <Ionicons name="trash-outline" size={20} color="#FF6B6B" />
-                </TouchableOpacity>
-              </View>
-            )}
-          />
+    <TouchableOpacity onPress={() => handleHistoryClick(item)}>
+      <View
+        style={{
+          backgroundColor: '#2A2D3A',
+          borderRadius: 8,
+          marginBottom: 16,
+          padding: 12,
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+        }}
+      >
+        <View style={{ flex: 1, marginRight: 12 }}>
+          <Text style={{ color: 'white', fontSize: 16, fontWeight: 'bold' }}>
+            {item.date}
+          </Text>
+          <Text style={{ color: '#9CA3AF', fontSize: 14, marginTop: 4 }}>
+            Origin: {item.fullRouteData?.legs?.[0]?.start_address || 'Unknown'}
+          </Text>
+          <Text style={{ color: '#9CA3AF', fontSize: 14, marginTop: 4 }}>
+            Destination: {item.fullRouteData?.legs?.[0]?.end_address || 'Unknown'}
+          </Text>
+          <Text style={{ color: '#06B6D4', fontSize: 14, marginTop: 4 }}>
+            Fare: {item.fare || 'N/A'}
+          </Text>
+        </View>
+        <TouchableOpacity onPress={() => deleteFareHistory(item.id)}>
+          <Ionicons name="trash-outline" size={20} color="#FF6B6B" />
+        </TouchableOpacity>
+      </View>
+    </TouchableOpacity>
+  )}
+/>
         ) : (
           // Grid View (with Map)
           <FlatList
-            data={filterFareHistory()}
-            keyExtractor={(item) => item.id}
-            renderItem={({ item }) => (
-              <View style={{ backgroundColor: '#2A2D3A', borderRadius: 8, marginBottom: 16, overflow: 'hidden' }}>
-                <MapView
-                  style={{ width: '100%', height: 180 }}
-                  initialRegion={{
-                    latitude: item.origin.latitude,
-                    longitude: item.origin.longitude,
-                    latitudeDelta: 0.5,
-                    longitudeDelta: 0.5,
-                  }}
-                >
-                  <Marker coordinate={item.origin} title="Start" />
-                  <Marker coordinate={item.destination} title="End" />
-                  <MapViewDirections
-                    origin={item.origin}
-                    destination={item.destination}
-                    apikey={GOOGLE_MAPS_APIKEY}
-                    strokeWidth={4}
-                    strokeColor="blue"
-                  />
-                </MapView>
-                <View style={{ padding: 12 }}>
-                  <Text style={{ color: 'white', fontSize: 16, fontWeight: 'bold' }}>{item.date}</Text>
-                  <Text style={{ color: '#9CA3AF', fontSize: 14, marginTop: 4 }}>{item.route}</Text>
-                  <Text style={{ color: '#06B6D4', fontSize: 14, marginTop: 4 }}>{item.fare}</Text>
-                </View>
-              </View>
+  data={filterFareHistory()}
+  keyExtractor={(item) => item.id}
+  renderItem={({ item }) => (
+    <TouchableOpacity onPress={() => handleHistoryClick(item)}>
+      <View style={{ backgroundColor: '#2A2D3A', borderRadius: 8, marginBottom: 16, overflow: 'hidden' }}>
+        <MapView
+          style={{ width: '100%', height: 180 }}
+          initialRegion={{
+            latitude: item.origin.latitude,
+            longitude: item.origin.longitude,
+            latitudeDelta: 0.5,
+            longitudeDelta: 0.5,
+          }}
+        >
+          <Marker coordinate={item.origin} title="Start" />
+          <Marker coordinate={item.destination} title="End" />
+          <MapViewDirections
+            origin={item.origin}
+            destination={item.destination}
+            apikey={GOOGLE_MAPS_APIKEY}
+            strokeWidth={4}
+            strokeColor="blue"
+          />
+        </MapView>
+        <View style={{ padding: 12 }}>
+          <Text style={{ color: 'white', fontSize: 16, fontWeight: 'bold' }}>{item.date}</Text>
+          <Text style={{ color: '#9CA3AF', fontSize: 14, marginTop: 4 }}>
+            Start: {item.originCoords?.address || item.originCoords?.name || item.originName || item.origin || 'Unknown'}
+          </Text>
+          <Text style={{ color: '#9CA3AF', fontSize: 14, marginTop: 4 }}>
+            End: {item.destinationCoords?.address || item.destinationCoords?.name || item.destinationName || item.destination || 'Unknown'}
+          </Text>
+          <Text style={{ color: '#06B6D4', fontSize: 14, marginTop: 4 }}>
+            Fare: {item.fare || 'N/A'}
+          </Text>
+          <Text style={{ color: '#9CA3AF', fontSize: 14, marginTop: 4 }}>
+            Route: {item.route}
+          </Text>
+        </View>
+      </View>
+    </TouchableOpacity>
             )}
           />
         )}

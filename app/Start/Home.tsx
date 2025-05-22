@@ -1,17 +1,15 @@
 import React, { useRef } from 'react';
-import { Text, View, TouchableOpacity, StyleSheet, StatusBar } from 'react-native';
+import { Text, View, TouchableOpacity, StyleSheet, StatusBar, Dimensions  } from 'react-native';
 import MapView, { PROVIDER_GOOGLE, Marker } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useFonts } from 'expo-font';
-
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const App = () => {
   const router = useRouter();
   const mapRef = useRef<MapView | null>(null);
   const params = useLocalSearchParams();
-const startLat = params.startLat ? parseFloat(params.startLat as string) : null;
-const startLng = params.startLng ? parseFloat(params.startLng as string) : null;
   const [userLocation, setUserLocation] = React.useState<{ latitude: number; longitude: number } | null>(null);
   const [fontsLoaded] = useFonts({
       'Inter-Bold': require('../../assets/fonts/Inter_18pt-Bold.ttf'), // Replace with your font path

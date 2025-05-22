@@ -17,9 +17,31 @@ const Login = () => {
   if (!fontsLoaded) {
     return null; // Render nothing until the font is loaded
   }
-  const handleLogin = () => {
-    router.push('./Home'); 
+  const handleLogin = async () => {
+    if (!email || !password) {
+      alert('Please enter both email and password.');
+      return;
+    }
+    try {
+      const response = await fetch('http://localhost:5000/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await response.json();
+      if (response.ok) {
+        // Save user_id for future requests if needed
+        // e.g., await AsyncStorage.setItem('user_id', data.user_id);
+        alert('Login successful!');
+        router.replace('./Home');
+      } else {
+        alert(data.message || 'Login failed');
+      }
+    } catch (error) {
+      alert('Network error. Please try again.');
+    }
   };
+
   const handleSignUp = () => {
     router.push('./Signup'); // Navigate to the Signup screen
   };

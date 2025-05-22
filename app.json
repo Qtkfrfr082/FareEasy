@@ -30,6 +30,7 @@
       }
     },
     "android": {
+      
       "versionCode": 1,
       "config": {
         "googleMaps": {

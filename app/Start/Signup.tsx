@@ -1,9 +1,58 @@
-import React, { useState } from 'react';
-import { View, Text, StatusBar, TextInput, TouchableOpacity, SafeAreaView, Image } from 'react-native';
+import React, { useState , useEffect} from 'react';
+import { View, Text, StatusBar, TextInput, TouchableOpacity, SafeAreaView, Image,  } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import * as WebBrowser from 'expo-web-browser';
+import * as Google from 'expo-auth-session/providers/google';
+import { signInWithCredential, GoogleAuthProvider } from 'firebase/auth';
+
+import { auth } from './firebaseconfig'; // Adjust path if needed
+import { useAuthRequest, makeRedirectUri, ResponseType } from 'expo-auth-session';
+
+console.log(makeRedirectUri({ scheme: 'FareEasy' }));
+WebBrowser.maybeCompleteAuthSession();
+
+const useGoogleAuth = () => {
+  const router = useRouter();
+
+ 
+const [request, response, promptAsync] = Google.useAuthRequest({
+  androidClientId: '54531737499-lu242kqrttllvkkl7pg90k0pl9vfbdke.apps.googleusercontent.com',
+  scopes: ['openid', 'profile', 'email'], // 🧠 include openid for id_token
+  redirectUri: makeRedirectUri({
+    scheme: 'FareEasy', // Must match your app.json
+   }),
+});
+
+  useEffect(() => {
+    console.log(makeRedirectUri({ scheme: 'FareEasy' }));
+  console.log('Google Auth Response:', response);
+
+  if (response?.type === 'success' && response.authentication?.idToken) {
+    const { idToken } = response.authentication;
+    const credential = GoogleAuthProvider.credential(idToken);
+
+    signInWithCredential(auth, credential)
+      .then((userCred) => {
+        console.log('✅ Signed in:', userCred.user.displayName);
+        router.replace('./Home');
+      })
+      .catch((err) => {
+        console.error('❌ Firebase Sign-In Error:', err);
+      });
+  }
+}, [response]);
+
+  return {
+    request,
+    promptAsync,
+  };
+};
+
 const Signup = () => {
   const router = useRouter();
+  const { promptAsync } = useGoogleAuth(); // ✅ Call the custom hook here
+
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -13,19 +62,43 @@ const Signup = () => {
     router.push('./Login'); 
   };
 
-  const handleSignUp = () => {
-    // Add signup logic here
-    router.replace('./Home'); // Navigate to Home screen
-  };
+  const handleSignUp = async () => {
+  if (!fullName || !email || !password) {
+    alert('Please fill in all fields.');
+    return;
+  }
+  try {
+    const response = await fetch('http://localhost:5000/signup', { // Change to your backend URL if needed
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: fullName,
+        email: email,
+        password: password,
+      }),
+    });
+    const data = await response.json();
+    if (response.ok) {
+      alert('Signup successful!');
+      router.replace('./Home');
+    } else {
+      alert(data.message || 'Signup failed');
+    }
+  } catch (error) {
+    alert('Network error. Please try again.');
+  }
+};
+
+
 
   return (
-  
       <SafeAreaView className="flex-1 bg-gray-900">
          <StatusBar barStyle="light-content" backgroundColor="transparent" translucent  />
-        <View className="flex-1 px-6 pt-10 items-center">
+        <View className="flex-1 px-6 pt-4 items-center">
           {/* Logo */}
-          <View className="mb-10 mt-28 items-center">
-            <View className="w-16 h-16 rounded-full bg-gray-900 items-center justify-center">
+          <View className="mb-8 mt-8 items-center">
+            <View>
+              <View className="w-16 h-16 rounded-full bg-gray-900 items-center justify-center"></View>
               <Image
                 source={require('../../assets/FareEasy-Logo.png')} // Replace with your image path
                 style={{ width: 180, height: 180 }}
@@ -109,9 +182,12 @@ const Signup = () => {
                 style={{ width: 30, height: 30 }}
               />
             </TouchableOpacity>
-            <TouchableOpacity className="flex-1 ml-2 bg-gray-800 rounded-lg p-4 items-center border border-gray-700">
+            <TouchableOpacity
+              className="flex-1 ml-2 bg-gray-800 rounded-lg p-4 items-center border border-gray-700"
+              onPress={() => promptAsync()}
+            >
               <Image
-                source={require('../../assets/google-icon.png')} // Replace with your image path
+                source={require('../../assets/google-icon.png')}
                 style={{ width: 30, height: 30 }}
               />
             </TouchableOpacity>
@@ -131,3 +207,4 @@ const Signup = () => {
 };
 
 export default Signup;
+
