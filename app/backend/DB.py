@@ -118,10 +118,9 @@ def receive_recent_searches():
         return jsonify({'status': 'error', 'message': 'Missing user_id or recent searches'}), 400
 
     try:
-        user_history_ref = db.collection('Users').document(user_id).collection('History')
+        user_history_ref = db.collection('Users').document(user_id).collection('Recents')
         # Always clear previous history for this user
-        for doc in user_history_ref.stream():
-            doc.reference.delete()
+       
         if recent:  # Only add if there are items
             batch = db.batch()
             for item in recent:
@@ -138,7 +137,7 @@ def get_recent_searches():
     if not user_id:
         return jsonify({'status': 'error', 'message': 'Missing user_id'}), 400
     try:
-        user_history_ref = db.collection('Users').document(user_id).collection('History')
+        user_history_ref = db.collection('Users').document(user_id).collection('Recents')
         recent = []
         for doc in user_history_ref.stream():
             item = doc.to_dict()
