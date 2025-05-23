@@ -119,15 +119,14 @@ def receive_recent_searches():
 
     try:
         user_history_ref = db.collection('Users').document(user_id).collection('Recents')
-        # Always clear previous history for this user
-       
-        if recent:  # Only add if there are items
+        if recent:  # Only add/update if there are items
             batch = db.batch()
             for item in recent:
                 doc_ref = user_history_ref.document(item['id'])
-                batch.set(doc_ref, item)
+                batch.set(doc_ref, item)  # This will upsert (add or update) the item
             batch.commit()
-        return jsonify({'status': 'success', 'message': 'Recent searches saved to history', 'count': len(recent)}), 200
+        # If recent is empty, do nothing (keep previous recents)
+        return jsonify({'status': 'success', 'message': 'Recent searches saved/updated', 'count': len(recent)}), 200
     except Exception as e:
         return jsonify({'status': 'error', 'message': f'Failed to save recent searches: {str(e)}'}), 500
     
