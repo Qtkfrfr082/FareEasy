@@ -126,29 +126,8 @@ def delete_transit():
     except Exception as e:
         return jsonify({'status': 'error', 'message': f'Failed to delete transit: {str(e)}'}), 500
     
-@app.route('/recent-searches', methods=['POST'])
-def receive_recent_searches():
-    data = request.get_json()
-    user_id = data.get('user_id')
-    recent = data.get('recent')
-    if not user_id or recent is None:
-        return jsonify({'status': 'error', 'message': 'Missing user_id or recent searches'}), 400
-
-    try:
-        user_history_ref = db.collection('Users').document(user_id).collection('Recents')
-        if recent:  # Only add/update if there are items
-            batch = db.batch()
-            for item in recent:
-                item['timestamp'] = firestore.SERVER_TIMESTAMP
-                doc_ref = user_history_ref.document(item['id'])
-                batch.set(doc_ref, item)  # This will upsert (add or update) the item
-            batch.commit()
-        # If recent is empty, do nothing (keep previous recents)
-        return jsonify({'status': 'success', 'message': 'Recent searches saved/updated', 'count': len(recent)}), 200
-    except Exception as e:
-        return jsonify({'status': 'error', 'message': f'Failed to save recent searches: {str(e)}'}), 500
 import hashlib
-from datetime import datetime
+
 @app.route('/recent-searches', methods=['POST'])
 def receive_recent_searches():
     data = request.get_json()
@@ -173,6 +152,25 @@ def receive_recent_searches():
         return jsonify({'status': 'success', 'message': 'Recent searches saved/updated', 'count': len(recent)}), 200
     except Exception as e:
         return jsonify({'status': 'error', 'message': f'Failed to save recent searches: {str(e)}'}), 500
+    
+from datetime import datetime
+@app.route('/recent-searches', methods=['GET'])
+def get_recent_searches():
+    user_id = request.args.get('user_id')
+    if not user_id:
+        return jsonify({'status': 'error', 'message': 'Missing user_id'}), 400
+    try:
+        user_history_ref = db.collection('Users').document(user_id).collection('Recents')
+        # Order by timestamp descending and limit to 5
+        recent_query = user_history_ref.order_by('timestamp', direction=firestore.Query.DESCENDING).limit(5)
+        recent = []
+        for doc in recent_query.stream():
+            item = doc.to_dict()
+            item['id'] = doc.id
+            recent.append(item)
+        return jsonify({'recent': recent}), 200
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': f'Failed to fetch recent searches: {str(e)}'}), 500
 @app.route('/save-transit', methods=['POST'])
 def save_transit():
     data = request.get_json()
