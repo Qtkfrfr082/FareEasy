@@ -65,7 +65,9 @@ def get_user():
         user_data = user_doc.to_dict()
         return jsonify({'status': 'success', 'user': {
             'name': user_data.get('name', ''),
-            'email': user_data.get('email', '')
+            'email': user_data.get('email', ''),
+            'address': user_data.get('address', ''),
+            'phone': user_data.get('phone', '')
         }}), 200
     except Exception as e:
         return jsonify({'status': 'error', 'message': f'Failed to fetch user: {str(e)}'}), 500
@@ -137,6 +139,7 @@ def receive_recent_searches():
         if recent:  # Only add/update if there are items
             batch = db.batch()
             for item in recent:
+                item['timestamp'] = firestore.SERVER_TIMESTAMP
                 doc_ref = user_history_ref.document(item['id'])
                 batch.set(doc_ref, item)  # This will upsert (add or update) the item
             batch.commit()
@@ -144,7 +147,8 @@ def receive_recent_searches():
         return jsonify({'status': 'success', 'message': 'Recent searches saved/updated', 'count': len(recent)}), 200
     except Exception as e:
         return jsonify({'status': 'error', 'message': f'Failed to save recent searches: {str(e)}'}), 500
-    
+
+from datetime import datetime
 @app.route('/recent-searches', methods=['GET'])
 def get_recent_searches():
     user_id = request.args.get('user_id')
@@ -152,15 +156,16 @@ def get_recent_searches():
         return jsonify({'status': 'error', 'message': 'Missing user_id'}), 400
     try:
         user_history_ref = db.collection('Users').document(user_id).collection('Recents')
+        # Order by timestamp descending and limit to 5
+        recent_query = user_history_ref.order_by('timestamp', direction=firestore.Query.DESCENDING).limit(5)
         recent = []
-        for doc in user_history_ref.stream():
+        for doc in recent_query.stream():
             item = doc.to_dict()
             item['id'] = doc.id
             recent.append(item)
         return jsonify({'recent': recent}), 200
     except Exception as e:
         return jsonify({'status': 'error', 'message': f'Failed to fetch recent searches: {str(e)}'}), 500
-
 @app.route('/save-transit', methods=['POST'])
 def save_transit():
     data = request.get_json()
