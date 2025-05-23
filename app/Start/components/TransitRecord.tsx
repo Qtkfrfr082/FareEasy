@@ -38,13 +38,12 @@ export default function RideWise() {
       .then(data => {
         if (Array.isArray(data.transit)) {
           setFareHistory(
-            data.transit.map((item: any, idx: number) => {
-              // Safely extract from fullRouteData.legs if available
+            data.transit.map((item: any) => {
               const legs = item.fullRouteData?.legs || [];
               const startLoc = legs[0]?.start_location;
               const endLoc = legs[legs.length - 1]?.end_location;
               return {
-                id: item.id || idx.toString(),
+                id: item.transit_id || item.id, // Use backend transit_id if available
                 date: item.date ? item.date.slice(0, 10) : '',
                 route: `${legs[0]?.start_address || ''} - ${legs[legs.length - 1]?.end_address || ''}`,
                 origin: startLoc
@@ -95,6 +94,7 @@ export default function RideWise() {
         style: 'destructive',
         onPress: async () => {
           // Remove from local state
+          console.log('Deleting transit_id:', id); // <-- Add this
           setFareHistory((prev) => prev.filter((item) => item.id !== id));
           // Remove from backend
           const userId = await AsyncStorage.getItem('user_id');

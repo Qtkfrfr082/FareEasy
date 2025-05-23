@@ -114,6 +114,7 @@ def delete_transit():
     data = request.get_json()
     user_id = data.get('user_id')
     transit_id = data.get('transit_id')
+    print('Delete request:', user_id, transit_id)
     if not user_id or not transit_id:
         return jsonify({'status': 'error', 'message': 'Missing user_id or transit_id'}), 400
     try:

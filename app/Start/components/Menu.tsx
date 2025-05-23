@@ -78,6 +78,8 @@ export default function Menu() {
           handlePress={() => router.push('./Appinformation')}/>
         <Option icon="calendar" label="Transit Record" 
         handlePress={() => router.push('./TransitRecord')}/>
+        <Option icon="heart" label="Favorite Routes" 
+        handlePress={() => router.push('./FavoriteRoutes')}/>
         <Option icon="log-out" label="Log out" 
          handlePress={() => router.push('../Login')}/>
       </View>

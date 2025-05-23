@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View,  StatusBar, Text, TextInput, TouchableOpacity, SafeAreaView, Image, StyleSheet } from 'react-native';
+import { View,  StatusBar, Text, TextInput, TouchableOpacity, SafeAreaView, Image, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useFonts } from 'expo-font';
@@ -10,6 +10,7 @@ const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+   const [loading, setLoading] = useState(false); 
   const [fontsLoaded] = useFonts({
     'Inter-Bold': require('../../assets/fonts/Inter_18pt-Bold.ttf'), // Replace with your font path
     'Inter-Regular': require('../../assets/fonts/Inter_18pt-Regular.ttf'), // Replace with your font path
@@ -18,33 +19,34 @@ const Login = () => {
   if (!fontsLoaded) {
     return null; // Render nothing until the font is loaded
   }
-  const handleLogin = async () => {
-  if (!email || !password) {
-    alert('Please enter both email and password.');
-    return;
-  }
-  try {
-    const response = await fetch('https://donewithit-yk99.onrender.com/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-    });
-    const data = await response.json();
-    if (response.ok) {
-      // Save user_id for future requests
-      if (data.user_id) {
-        await AsyncStorage.setItem('user_id', data.user_id);
-        console.log('User ID saved:', data.user_id);
-      }
-      alert('Login successful!');
-      router.replace('./Home');
-    } else {
-      alert(data.message || 'Login failed');
+   const handleLogin = async () => {
+    if (!email || !password) {
+      alert('Please enter both email and password.');
+      return;
     }
-  } catch (error) {
-    alert('Network error. Please try again.');
-  }
-};
+    setLoading(true); // Start loading
+    try {
+      const response = await fetch('https://donewithit-yk99.onrender.com/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await response.json();
+      if (response.ok) {
+        if (data.user_id) {
+          await AsyncStorage.setItem('user_id', data.user_id);
+          console.log('User ID saved:', data.user_id);
+        }
+        alert('Login successful!');
+        router.replace('./Home');
+      } else {
+        alert(data.message || 'Login failed');
+      }
+    } catch (error) {
+      alert('Network error. Please try again.');
+    }
+    setLoading(false); // Stop loading
+  };
 
   const handleSignUp = () => {
     router.push('./Signup'); // Navigate to the Signup screen
@@ -107,9 +109,17 @@ const Login = () => {
           </View>
 
           {/* Login button */}
-          <TouchableOpacity className="w-full bg-cyan-500 rounded-lg p-4 items-center mb-4" onPress={handleLogin}>
+         <TouchableOpacity
+          className="w-full bg-cyan-500 rounded-lg p-4 items-center mb-4"
+          onPress={handleLogin}
+          disabled={loading}
+        >
+          {loading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
             <Text className="text-white font-bold">Login</Text>
-          </TouchableOpacity>
+          )}
+        </TouchableOpacity>
 
           {/* Or sign in with */}
           <View className="w-full flex-row items-center justify-center mb-6">
