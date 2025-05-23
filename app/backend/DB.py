@@ -176,6 +176,7 @@ def save_transit():
 
     try:
         user_transit_ref = db.collection('Users').document(user_id).collection('Transit')
+        transit_data['created_at'] = firestore.SERVER_TIMESTAMP  # Add this line
         transit_ref = user_transit_ref.document()
         transit_ref.set(transit_data)
         return jsonify({'status': 'success', 'message': 'Transit saved to history'}), 200
@@ -189,14 +190,15 @@ def get_transit():
         return jsonify({'status': 'error', 'message': 'Missing user_id'}), 400
     try:
         user_transit_ref = db.collection('Users').document(user_id).collection('Transit')
+        # Order by created_at descending
+        transit_query = user_transit_ref.order_by('created_at', direction=firestore.Query.DESCENDING)
         transit = []
-        for doc in user_transit_ref.stream():
+        for doc in transit_query.stream():
             item = doc.to_dict()
             item['id'] = doc.id
             transit.append(item)
         return jsonify({'transit': transit}), 200
     except Exception as e:
         return jsonify({'status': 'error', 'message': f'Failed to fetch transit: {str(e)}'}), 500
-
 if __name__ == '__main__':
     app.run(debug=True)
