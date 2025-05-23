@@ -68,6 +68,9 @@ export default function RideWise() {
   const [routeType, setRouteType] = useState<'shortest' | 'cheapest'>('shortest');
   const [busToJeepSelections, setBusToJeepSelections] = useState<{ [key: number]: 'BUS' | 'JEEP' }>({});
   const [walkGroupSelections, setWalkGroupSelections] = useState<{ [key: number]: 'WALK' | 'TRICYCLE' }>({});
+  const [hasSavedHistory, setHasSavedHistory] = useState(false);
+  const [isFavorite, setIsFavorite] = useState(false);
+  
   let routeData = null;
   if (params.routeData) {
     try {
@@ -77,7 +80,12 @@ export default function RideWise() {
       routeData = null;
     }
   }
-
+ useEffect(() => {
+    if (!hasSavedHistory && routeData) {
+      saveTransitToBackend(); // Save to history
+      setHasSavedHistory(true);
+    }
+  }, [routeData, hasSavedHistory]);
   const mapRef = useRef<MapView>(null);
 
   // Discount logic
@@ -208,7 +216,6 @@ export default function RideWise() {
     if (!response.ok) {
       Alert.alert('Error', data.message || 'Failed to save transit.');
     } else {
-      Alert.alert('Saved', data.message || 'Transit saved to history!');
     }
   } catch (error) {
     Alert.alert('Network Error', 'Could not connect to the server. Please try again later.');
