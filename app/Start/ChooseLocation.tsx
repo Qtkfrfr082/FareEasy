@@ -56,14 +56,16 @@ console.log('User ID:', userId);
 
 React.useEffect(() => {
   if (!userId) return;
-  fetch('https://donewithit-yk99.onrender.com/recent-searches?user_id=' + userId)
-    .then(async response => {
-      if (!response.ok) return;
-      const data = await response.json();
-      if (Array.isArray(data.recent)) setHistoryData(data.recent);
-    })
-    .catch(() => {});
-}, [userId]);
+  // Save recent searches to backend
+  fetch('https://donewithit-yk99.onrender.com/recent-searches', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      user_id: userId,
+      recent: historyData,
+    }),
+  }).catch(() => {});
+}, [historyData, userId]);
 
 React.useEffect(() => {
   if (originData && !hasSetOriginRef.current) {

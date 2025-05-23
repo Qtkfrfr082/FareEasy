@@ -11,10 +11,7 @@ firebase_admin.initialize_app(cred)
 db = firestore.client()
 
 
-@app.route('/')
-def home():
-    return jsonify({'Running'})
-    
+
 @app.route('/login', methods=['POST'])
 def login():
     data = request.get_json()
@@ -117,24 +114,24 @@ def receive_recent_searches():
     data = request.get_json()
     user_id = data.get('user_id')
     recent = data.get('recent')
-    if not user_id or not recent:
+    if not user_id or recent is None:
         return jsonify({'status': 'error', 'message': 'Missing user_id or recent searches'}), 400
 
     try:
-        # Save each recent search as a document in the user's History subcollection
         user_history_ref = db.collection('Users').document(user_id).collection('History')
-        batch = db.batch()
-        # Optionally clear previous history for this user
+        # Always clear previous history for this user
         for doc in user_history_ref.stream():
             doc.reference.delete()
-        for item in recent:
-            doc_ref = user_history_ref.document(item['id'])
-            batch.set(doc_ref, item)
-        batch.commit()
+        if recent:  # Only add if there are items
+            batch = db.batch()
+            for item in recent:
+                doc_ref = user_history_ref.document(item['id'])
+                batch.set(doc_ref, item)
+            batch.commit()
         return jsonify({'status': 'success', 'message': 'Recent searches saved to history', 'count': len(recent)}), 200
     except Exception as e:
         return jsonify({'status': 'error', 'message': f'Failed to save recent searches: {str(e)}'}), 500
-
+    
 @app.route('/recent-searches', methods=['GET'])
 def get_recent_searches():
     user_id = request.args.get('user_id')
