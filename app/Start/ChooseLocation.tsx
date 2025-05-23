@@ -47,16 +47,30 @@ const RouteScreen = () => {
 
   const passengerOptions = ['Student', 'PWD', 'Senior Citizen', 'Regular'];
  const [userId, setUserId] = useState<string | null>(null);
+const [loadingUserId, setLoadingUserId] = useState(true);
+
 React.useEffect(() => {
+  // Always load user_id first
   AsyncStorage.getItem('user_id').then(id => {
     setUserId(id);
+    setLoadingUserId(false);
   });
 }, []);
 console.log('User ID:', userId); 
 
 React.useEffect(() => {
   if (!userId) return;
-  // Save recent searches to backend
+  fetch(`https://donewithit-yk99.onrender.com/recent-searches?user_id=${userId}`)
+    .then(res => res.json())
+    .then(data => {
+      if (Array.isArray(data.recent)) setHistoryData(data.recent);
+    })
+    .catch(() => {});
+}, [userId]);
+
+// Save recent searches to backend when historyData changes and userId is loaded
+React.useEffect(() => {
+  if (!userId) return;
   fetch('https://donewithit-yk99.onrender.com/recent-searches', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -206,7 +220,7 @@ const handleApply = () => {
     <View style={styles.divider} />
   </TouchableOpacity>
 );
-
+if (loadingUserId) {
   return (
     <SafeAreaView style={styles.container}>
     <StatusBar barStyle="light-content" backgroundColor="transparent" translucent  />
@@ -403,9 +417,10 @@ const handleApply = () => {
       {/* Bottom Indicator */}
       
     </SafeAreaView>
+
   );
 };
-
+}
 const styles = StyleSheet.create({
   container: {
     flex: 1,
