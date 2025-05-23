@@ -47,13 +47,13 @@ const RouteScreen = () => {
 
   const passengerOptions = ['Student', 'PWD', 'Senior Citizen', 'Regular'];
  const [userId, setUserId] = useState<string | null>(null);
-const [loadingUserId, setLoadingUserId] = useState(true);
+
 
 React.useEffect(() => {
   // Always load user_id first
   AsyncStorage.getItem('user_id').then(id => {
     setUserId(id);
-    setLoadingUserId(false);
+    
   });
 }, []);
 console.log('User ID:', userId); 
@@ -220,7 +220,7 @@ const handleApply = () => {
     <View style={styles.divider} />
   </TouchableOpacity>
 );
-if (loadingUserId) {
+
   return (
     <SafeAreaView style={styles.container}>
     <StatusBar barStyle="light-content" backgroundColor="transparent" translucent  />
@@ -420,7 +420,7 @@ if (loadingUserId) {
 
   );
 };
-}
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,

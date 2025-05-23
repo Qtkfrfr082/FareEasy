@@ -27,58 +27,50 @@ export default function RideWise() {
   const [fareHistory, setFareHistory] = useState<any[]>([]);
 
  React.useEffect(() => {
-    const fetchTransitHistory = async () => {
-      const userId = await AsyncStorage.getItem('user_id');
-      if (!userId) {
-        Alert.alert('Error', 'User not logged in.');
-        return;
-      }
-      fetch(`https://donewithit-yk99.onrender.com/get-transit?user_id=${userId}`)
-        .then(res => res.json())
-        .then(data => {
-          if (Array.isArray(data.transit)) {
-            setFareHistory(
-              data.transit.map((item: any, idx: number) => ({
+  const fetchTransitHistory = async () => {
+    const userId = await AsyncStorage.getItem('user_id');
+    if (!userId) {
+      Alert.alert('Error', 'User not logged in.');
+      return;
+    }
+    fetch(`https://donewithit-yk99.onrender.com/get-transit?user_id=${userId}`)
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data.transit)) {
+          setFareHistory(
+            data.transit.map((item: any, idx: number) => {
+              // Safely extract from fullRouteData.legs if available
+              const legs = item.fullRouteData?.legs || [];
+              const startLoc = legs[0]?.start_location;
+              const endLoc = legs[legs.length - 1]?.end_location;
+              return {
                 id: item.id || idx.toString(),
                 date: item.date ? item.date.slice(0, 10) : '',
-                route: `${item.origin || ''} - ${item.destination || ''}`,
-                origin: item.originCoords
-                  ? {
-                      latitude: item.originCoords.lat,
-                      longitude: item.originCoords.lng,
-                    }
-                  : (item.steps && item.steps[0] && item.steps[0].start_location
-                      ? {
-                          latitude: item.steps[0].start_location.lat,
-                          longitude: item.steps[0].start_location.lng,
-                        }
-                      : { latitude: 0, longitude: 0 }),
-                destination: item.destinationCoords
-                  ? {
-                      latitude: item.destinationCoords.lat,
-                      longitude: item.destinationCoords.lng,
-                    }
-                  : (item.steps && item.steps[item.steps.length - 1] && item.steps[item.steps.length - 1].end_location
-                      ? {
-                          latitude: item.steps[item.steps.length - 1].end_location.lat,
-                          longitude: item.steps[item.steps.length - 1].end_location.lng,
-                        }
-                      : { latitude: 0, longitude: 0 }),
+                route: `${legs[0]?.start_address || ''} - ${legs[legs.length - 1]?.end_address || ''}`,
+                origin: startLoc
+                  ? { latitude: startLoc.lat, longitude: startLoc.lng }
+                  : { latitude: 0, longitude: 0 },
+                destination: endLoc
+                  ? { latitude: endLoc.lat, longitude: endLoc.lng }
+                  : { latitude: 0, longitude: 0 },
                 fare: item.totalFare ? `₱${Number(item.totalFare).toFixed(0)}` : '',
                 passengerType: item.passengerType || 'Regular',
-                legs: item.fullRouteData?.legs || [],
+                legs,
                 fullRouteData: item.fullRouteData || item,
-              }))
-            );
-          }
-        })
-        .catch(() => {
-          Alert.alert('Error', 'Failed to fetch transit history from server.');
-        });
-    };
+              };
+            })
+          );
+        }
+      })
+      .catch((error) => {
+        Alert.alert('Error', 'Failed to fetch transit history.');
+        console.error(error);
+      });
+  };
 
-    fetchTransitHistory();
-  }, []);
+  fetchTransitHistory();
+}, []);
+           
 
   const handleBack = () => {
     router.push('./Menu');
@@ -92,22 +84,32 @@ export default function RideWise() {
   };
 
   // Delete function
-  const deleteFareHistory = (id: string) => {
-    Alert.alert(
-      'Delete Confirmation',
-      'Are you sure you want to delete this record?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => {
-            setFareHistory((prev) => prev.filter((item) => item.id !== id));
-          },
+  const deleteFareHistory = async (id: string) => {
+  Alert.alert(
+    'Delete Confirmation',
+    'Are you sure you want to delete this record?',
+    [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          // Remove from local state
+          setFareHistory((prev) => prev.filter((item) => item.id !== id));
+          // Remove from backend
+          const userId = await AsyncStorage.getItem('user_id');
+          if (userId) {
+            fetch('https://donewithit-yk99.onrender.com/delete-transit', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ user_id: userId, transit_id: id }),
+            });
+          }
         },
-      ]
-    );
-  };
+      },
+    ]
+  );
+};
 
   // Generate marked dates for the calendar
   const generateMarkedDates = () => {
@@ -331,9 +333,13 @@ export default function RideWise() {
             Fare: {item.fare || 'N/A'}
           </Text>
         </View>
-        <TouchableOpacity onPress={() => deleteFareHistory(item.id)}>
-          <Ionicons name="trash-outline" size={20} color="#FF6B6B" />
-        </TouchableOpacity>
+       <TouchableOpacity
+  onPress={() => deleteFareHistory(item.id)}
+  style={{ padding: 16, borderRadius: 24, alignItems: 'center', justifyContent: 'center' }}
+  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+>
+  <Ionicons name="trash-outline" size={20} color="#FF6B6B" />
+</TouchableOpacity>
       </View>
     </TouchableOpacity>
   )}
@@ -344,7 +350,7 @@ export default function RideWise() {
   data={filterFareHistory()}
   keyExtractor={(item) => item.id}
   renderItem={({ item }) => (
-    <TouchableOpacity onPress={() => handleHistoryClick(item)}>
+   
       <View style={{ backgroundColor: '#2A2D3A', borderRadius: 8, marginBottom: 16, overflow: 'hidden' }}>
         <MapView
           style={{ width: '100%', height: 180 }}
@@ -355,33 +361,54 @@ export default function RideWise() {
             longitudeDelta: 0.5,
           }}
         >
-          <Marker coordinate={item.origin} title="Start" />
-          <Marker coordinate={item.destination} title="End" />
+         
           <MapViewDirections
             origin={item.origin}
             destination={item.destination}
             apikey={GOOGLE_MAPS_APIKEY}
             strokeWidth={4}
             strokeColor="blue"
-          />
+          /> 
+          <Marker coordinate={item.origin} title="Start" />
+          <Marker coordinate={item.destination} title="End" />
         </MapView>
-        <View style={{ padding: 12 }}>
+        
+        <View style={{ padding: 12 }}> 
+          <TouchableOpacity onPress={() => handleHistoryClick(item)}>
           <Text style={{ color: 'white', fontSize: 16, fontWeight: 'bold' }}>{item.date}</Text>
-          <Text style={{ color: '#9CA3AF', fontSize: 14, marginTop: 4 }}>
-            Start: {item.originCoords?.address || item.originCoords?.name || item.originName || item.origin || 'Unknown'}
-          </Text>
-          <Text style={{ color: '#9CA3AF', fontSize: 14, marginTop: 4 }}>
-            End: {item.destinationCoords?.address || item.destinationCoords?.name || item.destinationName || item.destination || 'Unknown'}
-          </Text>
+         <Text style={{ color: '#9CA3AF', fontSize: 14, marginTop: 4 }}>
+  Start: {
+    item.originCoords?.address ||
+    item.originCoords?.name ||
+    item.originName ||
+    item.fullRouteData?.legs?.[0]?.start_address ||
+    (typeof item.origin === 'string'
+      ? item.origin
+      : (item.origin && typeof item.origin.latitude === 'number' && typeof item.origin.longitude === 'number')
+        ? `${item.origin.latitude}, ${item.origin.longitude}`
+        : 'Unknown')
+  }
+</Text>
+<Text style={{ color: '#9CA3AF', fontSize: 14, marginTop: 4 }}>
+  End: {
+    item.destinationCoords?.address ||
+    item.destinationCoords?.name ||
+    item.destinationName ||
+    item.fullRouteData?.legs?.[0]?.end_address ||
+    (typeof item.destination === 'string'
+      ? item.destination
+      : (item.destination && typeof item.destination.latitude === 'number' && typeof item.destination.longitude === 'number')
+        ? `${item.destination.latitude}, ${item.destination.longitude}`
+        : 'Unknown')
+  }
+</Text>
           <Text style={{ color: '#06B6D4', fontSize: 14, marginTop: 4 }}>
             Fare: {item.fare || 'N/A'}
           </Text>
-          <Text style={{ color: '#9CA3AF', fontSize: 14, marginTop: 4 }}>
-            Route: {item.route}
-          </Text>
-        </View>
+          </TouchableOpacity>
+        </View> 
       </View>
-    </TouchableOpacity>
+   
             )}
           />
         )}

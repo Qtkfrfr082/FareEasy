@@ -109,6 +109,20 @@ def update_user():
     except Exception as e:
         return jsonify({'status': 'error', 'message': f'Failed to update user: {str(e)}'}), 500
     
+@app.route('/delete-transit', methods=['POST'])
+def delete_transit():
+    data = request.get_json()
+    user_id = data.get('user_id')
+    transit_id = data.get('transit_id')
+    if not user_id or not transit_id:
+        return jsonify({'status': 'error', 'message': 'Missing user_id or transit_id'}), 400
+    try:
+        user_transit_ref = db.collection('Users').document(user_id).collection('Transit').document(transit_id)
+        user_transit_ref.delete()
+        return jsonify({'status': 'success', 'message': 'Transit record deleted'}), 200
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': f'Failed to delete transit: {str(e)}'}), 500
+    
 @app.route('/recent-searches', methods=['POST'])
 def receive_recent_searches():
     data = request.get_json()

@@ -17,14 +17,14 @@ const RootLayout = () => {
                 <SplashScreenComponent onFinish={handleSplashFinish} />
             ) : (
                 <Stack screenOptions={{ headerShown: false }}>
-                    <Stack.Screen name="Login" />
-                    <Stack.Screen name="Signup" />
-                    <Stack.Screen name="Home" />
-                    <Stack.Screen name="ChooseLocation"/>
-                    <Stack.Screen name="Editprofile" />
-                    <Stack.Screen name="Menu" />
-                    <Stack.Screen name="Changepassword" />
-                    <Stack.Screen name="RouteMap" />
+                    <Stack.Screen name="Start/Login" />
+                    <Stack.Screen name="Start/Signup" />
+                    <Stack.Screen name="Start/Home" />
+                    <Stack.Screen name="Start/ChooseLocation" />
+                    <Stack.Screen name="Start/components/Changepassword" />
+                    <Stack.Screen name="Start/components/Editprofile" />
+                    <Stack.Screen name="Start/components/Menu" />
+                    <Stack.Screen name="Start/components/RoutesMap" />
                 </Stack>
             )}
         </>
