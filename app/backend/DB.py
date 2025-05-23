@@ -127,6 +127,7 @@ def delete_transit():
         return jsonify({'status': 'error', 'message': f'Failed to delete transit: {str(e)}'}), 500
     
 import hashlib
+import json
 
 @app.route('/recent-searches', methods=['POST'])
 def receive_recent_searches():
@@ -141,8 +142,10 @@ def receive_recent_searches():
         if recent:
             batch = db.batch()
             for item in recent:
-                # Generate a unique ID based on origin and destination (or other unique fields)
-                unique_str = f"{item.get('origin')}_{item.get('destination')}"
+                # Convert origin/destination to sorted JSON strings for uniqueness
+                origin_str = json.dumps(item.get('origin'), sort_keys=True)
+                destination_str = json.dumps(item.get('destination'), sort_keys=True)
+                unique_str = f"{origin_str}_{destination_str}"
                 item_id = hashlib.md5(unique_str.encode()).hexdigest()
                 item['id'] = item_id
                 item['timestamp'] = firestore.SERVER_TIMESTAMP

@@ -330,7 +330,7 @@ export default function RideWise() {
             Destination: {item.fullRouteData?.legs?.[0]?.end_address || 'Unknown'}
           </Text>
           <Text style={{ color: '#06B6D4', fontSize: 14, marginTop: 4 }}>
-            Fare: {item.fare || 'N/A'}
+            Fare: {item.fare || '₱0'}
           </Text>
         </View>
        <TouchableOpacity
