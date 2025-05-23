@@ -139,23 +139,18 @@ def receive_recent_searches():
 
     try:
         user_history_ref = db.collection('Users').document(user_id).collection('Recents')
-        if recent:
+        if recent:  # Only add/update if there are items
             batch = db.batch()
             for item in recent:
-                # Convert origin/destination to sorted JSON strings for uniqueness
-                origin_str = json.dumps(item.get('origin'), sort_keys=True)
-                destination_str = json.dumps(item.get('destination'), sort_keys=True)
-                unique_str = f"{origin_str}_{destination_str}"
-                item_id = hashlib.md5(unique_str.encode()).hexdigest()
-                item['id'] = item_id
                 item['timestamp'] = firestore.SERVER_TIMESTAMP
-                doc_ref = user_history_ref.document(item_id)
-                batch.set(doc_ref, item)
+                doc_ref = user_history_ref.document(item['id'])
+                batch.set(doc_ref, item)  # This will upsert (add or update) the item
             batch.commit()
+        # If recent is empty, do nothing (keep previous recents)
         return jsonify({'status': 'success', 'message': 'Recent searches saved/updated', 'count': len(recent)}), 200
     except Exception as e:
         return jsonify({'status': 'error', 'message': f'Failed to save recent searches: {str(e)}'}), 500
-    
+
 from datetime import datetime
 @app.route('/recent-searches', methods=['GET'])
 def get_recent_searches():
