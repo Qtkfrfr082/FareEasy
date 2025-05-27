@@ -1,6 +1,7 @@
 import React, { useState , useEffect} from 'react';
 import { View, Text, StatusBar, TextInput, TouchableOpacity, SafeAreaView, Image,  } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useFonts } from 'expo-font';
 import { Ionicons } from '@expo/vector-icons';
 import * as WebBrowser from 'expo-web-browser';
 import * as Google from 'expo-auth-session/providers/google';
@@ -9,6 +10,7 @@ import { signInWithCredential, GoogleAuthProvider } from 'firebase/auth';
 import { auth } from './firebaseconfig'; // Adjust path if needed
 import { useAuthRequest, makeRedirectUri, ResponseType } from 'expo-auth-session';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+
 console.log(makeRedirectUri({ scheme: 'FareEasy' }));
 WebBrowser.maybeCompleteAuthSession();
 
@@ -51,15 +53,22 @@ const [request, response, promptAsync] = Google.useAuthRequest({
 
 const Signup = () => {
   const router = useRouter();
-  const { promptAsync } = useGoogleAuth(); // ✅ Call the custom hook here
+  const { promptAsync } = useGoogleAuth(); 
 
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-
+  const [fontsLoaded] = useFonts({
+      'Inter-Bold': require('../../assets/fonts/Inter_18pt-Bold.ttf'), // Replace with your font path
+      'Inter-Regular': require('../../assets/fonts/Inter_18pt-Regular.ttf'), // Replace with your font path
+    });
+  
+    if (!fontsLoaded) {
+      return null; // Render nothing until the font is loaded
+    }
   const handleLogin = () => {
-    router.push('./Login'); 
+    router.back();
   };
 
   const handleSignUp = async () => {
@@ -94,15 +103,13 @@ const Signup = () => {
 };
 
 
-
   return (
       <SafeAreaView className="flex-1 bg-gray-900">
          <StatusBar barStyle="light-content" backgroundColor="transparent" translucent  />
-        <View className="flex-1 px-6 pt-4 items-center">
+        <View className="flex-1 px-6 pt-10 items-center">
           {/* Logo */}
-          <View className="mb-8 mt-8 items-center">
-            <View>
-              <View className="w-16 h-16 rounded-full bg-gray-900 items-center justify-center"></View>
+          <View className="mb-10 mt-28 items-center">
+            <View className="w-16 h-16 rounded-full bg-gray-900 items-center justify-center">
               <Image
                 source={require('../../assets/FareEasy-Logo.png')} // Replace with your image path
                 style={{ width: 180, height: 180 }}
@@ -111,8 +118,9 @@ const Signup = () => {
           </View>
 
           {/* Create account heading */}
-          <Text className="text-white text-2xl font-bold mb-2 self-start">Create an Account</Text>
-          <Text className="text-gray-400 text-sm mb-6 self-start">
+                    <Text style={{ color: 'white', fontSize: 24, fontFamily: 'Inter-Bold', marginBottom: 8, alignSelf: 'flex-start' }}>
+          Create an Account</Text>
+         <Text style={{ color: 'gray', fontSize: 12, fontFamily: 'Inter-Regular', marginBottom: 8, alignSelf: 'flex-start' }}>
             To create an account provide details, verify email and set password
           </Text>
 
@@ -180,7 +188,7 @@ const Signup = () => {
 
           {/* Social login buttons */}
           <View className="flex-row justify-between w-full">
-            <TouchableOpacity className="flex-1 mr-2 bg-gray-800 rounded-lg p-4 items-center border border-gray-700">
+            <TouchableOpacity className="flex-1 mr-2 bg-gray-800 rounded-lg p-4 items-center border border-gray-700" disabled>
               <Image
                 source={require('../../assets/facebook-icon.png')} // Replace with your image path
                 style={{ width: 30, height: 30 }}
@@ -200,7 +208,7 @@ const Signup = () => {
           {/* Login link */}
           <View className="flex-row mt-auto mb-8 justify-center">
             <Text className="text-gray-400">Already have an Account? </Text>
-            <TouchableOpacity onPress={handleLogin}>
+            <TouchableOpacity onPress={handleLogin} disabled>
               <Text className="text-cyan-500">Sign in</Text>
             </TouchableOpacity>
           </View>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, StatusBar, Text, TextInput, TouchableOpacity, Image, ScrollView, Alert } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import { Feather, Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useFonts } from 'expo-font';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -88,7 +88,7 @@ export default function Editprofile() {
     <ScrollView className="flex-1 bg-[#0f1c2e] px-6 pt-12">
       {/* Header */}
       <View className="flex-row items-center mb-6">
-        <Feather name="arrow-left" size={24} color="white" onPress={() => router.back()}/>
+        <Ionicons name="chevron-back" size={28} color="white" onPress={() => router.back()}/>
         <Text className="ml-4" style={{ color: 'white', fontSize: 24, fontFamily: 'Inter-Bold' }}>Edit Profile</Text>
       </View>
 

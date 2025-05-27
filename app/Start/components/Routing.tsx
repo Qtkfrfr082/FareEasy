@@ -75,6 +75,7 @@ export default function RideWise() {
   const [isFavorite, setIsFavorite] = useState(false);
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const bottomSheetRef = useRef<BottomSheet>(null);
+  
 const snapPoints = useMemo(() => ["20%", "50%", "90%"], []);
    useEffect(() => {
     const fetchUserLocation = async () => {
@@ -204,23 +205,7 @@ useEffect(() => {
 
   const discountedFare = totalFare;
 
-  useEffect(() => {
-    if (
-      routeData?.overview_polyline?.points &&
-      mapRef.current
-    ) {
-      const coords = decodePolyline(routeData.overview_polyline.points);
-      if (coords.length > 0) {
-        setTimeout(() => {
-          mapRef.current?.fitToCoordinates(coords, {
-            edgePadding: { top: 60, right: 60, bottom: 60, left: 60 },
-            animated: true,
-          });
-        }, 500);
-      }
-    }
-  }, [routeData]);
-
+  
   const saveFavoriteToBackend = async () => {
   try {
     const userId = await AsyncStorage.getItem('user_id');
@@ -256,7 +241,7 @@ useEffect(() => {
     if (!response.ok) {
       Alert.alert('Error', data.message || 'Failed to save favorite.');
     } else {
-      Alert.alert('Success', 'Route added to favorites!');
+      Alert.alert('Route added to favorites!');
     }
   } catch (error) {
     Alert.alert('Network Error', 'Could not connect to the server. Please try again later.');
@@ -298,7 +283,7 @@ const saveTransitToBackend = async () => {
     if (!response.ok) {
       Alert.alert('Error', data.message || 'Failed to save favorite.');
     } else {
-      Alert.alert('Success', 'Route added to favorites!');
+    
     }
   } catch (error) {
     Alert.alert('Network Error', 'Could not connect to the server. Please try again later.');
@@ -355,6 +340,93 @@ useEffect(() => {
   }
 }, [routeData]);
 
+const [favoriteId, setFavoriteId] = useState<string | null>(null);
+
+// Helper to check if the current route is already a favorite
+const checkIfFavorite = async () => {
+  const userId = await AsyncStorage.getItem('user_id');
+  if (!userId || !routeData) return;
+  try {
+    const res = await fetch(`https://donewithit-yk99.onrender.com/get-favorites?user_id=${userId}`);
+    const data = await res.json();
+    if (Array.isArray(data.favorites)) {
+      const found = data.favorites.find(
+        (fav: any) =>
+          JSON.stringify(fav.fullRouteData) === JSON.stringify({
+            bounds: routeData.bounds,
+            copyrights: routeData.copyrights,
+            fare: routeData.fare,
+            legs: routeData.legs,
+            overview_polyline: routeData.overview_polyline,
+            summary: routeData.summary,
+            warnings: routeData.warnings,
+            waypoint_order: routeData.waypoint_order,
+          })
+      );
+      if (found) {
+        setIsFavorite(true);
+        setFavoriteId(found.id);
+      } else {
+        setIsFavorite(false);
+        setFavoriteId(null);
+      }
+    }
+  } catch (e) {
+    setIsFavorite(false);
+    setFavoriteId(null);
+  }
+};
+
+useEffect(() => {
+  checkIfFavorite();
+}, [routeData]);
+
+
+const [weather, setWeather] = useState<{ code: number; description: string; temp?: number } | null>(null);
+
+useEffect(() => {
+  const fetchWeather = async () => {
+    try {
+      const lat = origin.latitude;
+      const lon = origin.longitude;
+      const res = await fetch(
+        `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`
+      );
+      const data = await res.json();
+      if (data.current_weather) {
+        setWeather({
+          code: data.current_weather.weathercode,
+          description: getWeatherDescription(data.current_weather.weathercode),
+          temp: data.current_weather.temperature, // <-- add temperature
+        });
+      }
+    } catch (e) {
+      setWeather(null);
+    }
+  };
+  fetchWeather();
+}, [origin.latitude, origin.longitude]);
+
+function getWeatherDescription(code: number) {
+  // Open-Meteo weather codes: https://open-meteo.com/en/docs
+  if ([0].includes(code)) return 'Clear';
+  if ([1, 2, 3].includes(code)) return 'Cloudy';
+  if ([45, 48].includes(code)) return 'Fog';
+  if ([51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82].includes(code)) return 'Rain';
+  if ([71, 73, 75, 77, 85, 86].includes(code)) return 'Snow';
+  if ([95, 96, 99].includes(code)) return 'Thunderstorm';
+  return 'Unknown';
+}
+
+function getWeatherIcon(code: number) {
+  if ([0].includes(code)) return <MaterialCommunityIcons name="weather-sunny" size={28} color="#FFD600" />;
+  if ([1, 2, 3].includes(code)) return <MaterialCommunityIcons name="weather-cloudy" size={28} color="#90A4AE" />;
+  if ([45, 48].includes(code)) return <MaterialCommunityIcons name="weather-fog" size={28} color="#B0BEC5" />;
+  if ([51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82].includes(code)) return <MaterialCommunityIcons name="weather-rainy" size={28} color="#2196F3" />;
+  if ([71, 73, 75, 77, 85, 86].includes(code)) return <MaterialCommunityIcons name="weather-snowy" size={28} color="#90CAF9" />;
+  if ([95, 96, 99].includes(code)) return <MaterialCommunityIcons name="weather-lightning" size={28} color="#FFD600" />;
+  return <MaterialCommunityIcons name="weather-partly-cloudy" size={28} color="#90A4AE" />;
+}
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#0f1c2e' }}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
@@ -379,13 +451,37 @@ useEffect(() => {
         }}>
         
         </Text>
-        <TouchableOpacity onPress={saveFavoriteToBackend} style={{ marginLeft: 12 }}>
-          <Ionicons name="heart-outline" size={28} color="#FF4D4D" />
-        </TouchableOpacity>
+        <TouchableOpacity
+  onPress={async () => {
+    if (isFavorite && favoriteId) {
+      // Unfavorite
+      const userId = await AsyncStorage.getItem('user_id');
+      await fetch('https://donewithit-yk99.onrender.com/delete-favorite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: userId, favorite_id: favoriteId }),
+      });
+      setIsFavorite(false);
+      setFavoriteId(null);
+    } else {
+      // Favorite
+      await saveFavoriteToBackend();
+      checkIfFavorite();
+    }
+  }}
+  style={{ marginLeft: 12 }}
+>
+  <Ionicons
+    name={isFavorite ? "heart" : "heart-outline"}
+    size={28}
+    color="#FF4D4D"
+  />
+</TouchableOpacity>
       </View>
    
         <GestureHandlerRootView>
   <View
+  
         style={styles.mapContainer}
       >
       {/* Map View */}
@@ -412,6 +508,7 @@ useEffect(() => {
             }}
             showsTraffic={true}
           >
+            
             {/* User Location Marker */}
             {userLocation && (
               <Marker
@@ -429,6 +526,7 @@ useEffect(() => {
                     borderColor: '#fff',
                   }}
                 />
+              
               </Marker>
             )}
             {/* Origin Marker */}
@@ -468,6 +566,39 @@ useEffect(() => {
               </Marker>
             ))}
           </MapView>
+   {weather && (
+  <View
+    style={{
+      position: 'absolute',
+      top: 18,
+      right: 18,
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 10,
+    }}
+  >
+    <View
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(43, 43, 43, 0.62)',
+        borderRadius: 20,
+        paddingVertical: 3,
+        paddingHorizontal: 15,
+        shadowColor: '#000',
+        shadowOpacity: 0.15,
+        shadowRadius: 4,
+        elevation: 4,
+      }}
+    >
+      {getWeatherIcon(weather.code)}
+      <Text style={{ color: '#fff', fontSize: 12, marginLeft: 8, fontWeight: 'bold' }}>
+        {weather.description}
+        {weather.temp !== undefined ? ` • ${weather.temp}°C` : ''}
+      </Text>
+    </View>
+  </View>
+)}
           {/* Traffic Legend */}
           <View
             style={{
@@ -485,6 +616,7 @@ useEffect(() => {
               shadowRadius: 4,
             }}
           >
+            
             <View style={{ width: 18, height: 6, backgroundColor: '#2ecc40', borderRadius: 3, marginRight: 6 }} />
             <Text style={{ fontSize: 13, color: '#222', marginRight: 12 }}>Light</Text>
             <View style={{ width: 18, height: 6, backgroundColor: '#ffdc00', borderRadius: 3, marginRight: 6 }} />
@@ -494,7 +626,9 @@ useEffect(() => {
           </View>
         </View>
       )}
+
       </View>
+      
      <BottomSheet
       ref={bottomSheetRef}
       index={0}
@@ -502,8 +636,10 @@ useEffect(() => {
       backgroundStyle={{  borderRadius: 16 }}
       handleIndicatorStyle={{ backgroundColor: '#888' }}
     >
+     
  <BottomSheetView style={{ flex: 1  }}>
       {/* Route Details */}
+      
       <View style={{
         backgroundColor: '#fff',
         padding: 18,

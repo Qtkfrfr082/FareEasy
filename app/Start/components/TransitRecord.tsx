@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { View, Text, FlatList, StatusBar, SafeAreaView, TouchableOpacity, Alert } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import MapViewDirections from 'react-native-maps-directions';
@@ -7,8 +7,9 @@ import { useRouter } from 'expo-router';
 import { useFonts } from 'expo-font';
 import { Calendar } from 'react-native-calendars';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
+import { Animated } from 'react-native';
 const GOOGLE_MAPS_APIKEY = 'AIzaSyDh3IwX1o3v0Ud_YZJUtM_29LIetafzQAY';
+
 
 export default function RideWise() {
   const router = useRouter();
@@ -16,7 +17,33 @@ export default function RideWise() {
     'Inter-Bold': require('../../../assets/fonts/Inter_18pt-Bold.ttf'),
     'Inter-Regular': require('../../../assets/fonts/Inter_18pt-Regular.ttf'),
   });
+const SlideInItem = React.memo(({ children, index }: { children: React.ReactNode; index: number }) => {
+  const translateX = useRef(new Animated.Value(60)).current;
+  const opacity = useRef(new Animated.Value(0)).current;
 
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(translateX, {
+        toValue: 0,
+        duration: 350,
+        delay: index * 60,
+        useNativeDriver: true,
+      }),
+      Animated.timing(opacity, {
+        toValue: 1,
+        duration: 350,
+        delay: index * 60,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [index, translateX, opacity]);
+
+  return (
+    <Animated.View style={{ transform: [{ translateX }], opacity }}>
+      {children}
+    </Animated.View>
+  );
+});
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [showStartCalendar, setShowStartCalendar] = useState(false);
@@ -25,55 +52,67 @@ export default function RideWise() {
 
   // Convert fareHistory to state
   const [fareHistory, setFareHistory] = useState<any[]>([]);
+  const [page, setPage] = useState(1);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const PAGE_SIZE = 10; 
 
- React.useEffect(() => {
-  const fetchTransitHistory = async () => {
-    const userId = await AsyncStorage.getItem('user_id');
-    if (!userId) {
-      Alert.alert('Error', 'User not logged in.');
-      return;
-    }
-    fetch(`https://donewithit-yk99.onrender.com/get-transit?user_id=${userId}`)
-      .then(res => res.json())
-      .then(data => {
-        if (Array.isArray(data.transit)) {
-          setFareHistory(
-            data.transit.map((item: any) => {
-              const legs = item.fullRouteData?.legs || [];
-              const startLoc = legs[0]?.start_location;
-              const endLoc = legs[legs.length - 1]?.end_location;
-              return {
-                id: item.transit_id || item.id, // Use backend transit_id if available
-                date: item.date ? item.date.slice(0, 10) : '',
-                route: `${legs[0]?.start_address || ''} - ${legs[legs.length - 1]?.end_address || ''}`,
-                origin: startLoc
-                  ? { latitude: startLoc.lat, longitude: startLoc.lng }
-                  : { latitude: 0, longitude: 0 },
-                destination: endLoc
-                  ? { latitude: endLoc.lat, longitude: endLoc.lng }
-                  : { latitude: 0, longitude: 0 },
-                fare: item.totalFare ? `₱${Number(item.totalFare).toFixed(0)}` : '',
-                passengerType: item.passengerType || 'Regular',
-                legs,
-                fullRouteData: item.fullRouteData || item,
-              };
-            })
-          );
-        }
-      })
-      .catch((error) => {
-        Alert.alert('Error', 'Failed to fetch transit history.');
-        console.error(error);
-      });
-  };
 
-  fetchTransitHistory();
-}, []);
+  const fetchTransitHistory = async (reset = false) => {
+  const userId = await AsyncStorage.getItem('user_id');
+  if (!userId) {
+    Alert.alert('Error', 'User not logged in.');
+    return;
+  }
+  if (loadingMore) return;
+  setLoadingMore(true);
+
+  // For cursor-based pagination, send last item's date or id
+  const lastItem = !reset && fareHistory.length > 0 ? fareHistory[fareHistory.length - 1] : null;
+  const lastDate = lastItem ? lastItem.date : undefined;
+
+  let url = `https://donewithit-yk99.onrender.com/get-transit?user_id=${userId}&limit=${PAGE_SIZE}`;
+  if (lastDate) url += `&lastDate=${lastDate}`;
+
+  fetch(url)
+    .then(res => res.json())
+    .then(data => {
+      if (Array.isArray(data.transit)) {
+        const newData = data.transit.map((item: any) => {
+          const legs = item.fullRouteData?.legs || [];
+          const startLoc = legs[0]?.start_location;
+          const endLoc = legs[legs.length - 1]?.end_location;
+          return {
+            id: item.transit_id || item.id,
+            date: item.date ? item.date.slice(0, 10) : '',
+            route: `${legs[0]?.start_address || ''} - ${legs[legs.length - 1]?.end_address || ''}`,
+            origin: startLoc
+              ? { latitude: startLoc.lat, longitude: startLoc.lng }
+              : { latitude: 0, longitude: 0 },
+            destination: endLoc
+              ? { latitude: endLoc.lat, longitude: endLoc.lng }
+              : { latitude: 0, longitude: 0 },
+            fare: item.totalFare ? `₱${Number(item.totalFare).toFixed(0)}` : '',
+            passengerType: item.passengerType || 'Regular',
+            legs,
+            fullRouteData: item.fullRouteData || item,
+          };
+        });
+        setFareHistory(reset ? newData : [...fareHistory, ...newData]);
+        setHasMore(newData.length === PAGE_SIZE);
+      }
+      setLoadingMore(false);
+    })
+    .catch((error) => {
+      Alert.alert('Error', 'Failed to fetch transit history.');
+      setLoadingMore(false);
+      console.error(error);
+    });
+};
            
-
-  const handleBack = () => {
-    router.push('./Menu');
-  };
+  useEffect(() => {
+      fetchTransitHistory(true); // true = reset
+    }, []);
 
   const filterFareHistory = () => {
     if (!startDate || !endDate) return fareHistory;
@@ -164,6 +203,114 @@ export default function RideWise() {
     }
   });
 };
+
+  const renderListItem = useCallback(
+    ({ item, index }: { item: any; index: number }) => (
+      <SlideInItem index={index}>
+        <TouchableOpacity onPress={() => handleHistoryClick(item)}>
+          <View
+            style={{
+              backgroundColor: '#2A2D3A',
+              borderRadius: 8,
+              marginBottom: 16,
+              padding: 12,
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}
+          >
+            <View style={{ flex: 1, marginRight: 12 }}>
+              <Text style={{ color: 'white', fontSize: 16, fontWeight: 'bold' }}>
+                {item.date}
+              </Text>
+              <Text style={{ color: '#9CA3AF', fontSize: 14, marginTop: 4 }}>
+                Origin: {item.fullRouteData?.legs?.[0]?.start_address || 'Unknown'}
+              </Text>
+              <Text style={{ color: '#9CA3AF', fontSize: 14, marginTop: 4 }}>
+                Destination: {item.fullRouteData?.legs?.[0]?.end_address || 'Unknown'}
+              </Text>
+              <Text style={{ color: '#06B6D4', fontSize: 14, marginTop: 4 }}>
+                Fare: {item.fare || '₱0'}
+              </Text>
+            </View>
+            <TouchableOpacity
+              onPress={() => deleteFareHistory(item.id)}
+              style={{ padding: 16, borderRadius: 24, alignItems: 'center', justifyContent: 'center' }}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Ionicons name="trash-outline" size={20} color="#FF6B6B" />
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </SlideInItem>
+    ),
+    [handleHistoryClick, deleteFareHistory]
+  );
+
+  const renderGridItem = useCallback(
+    ({ item, index }: { item: any; index: number }) => (
+      <SlideInItem index={index}>
+        <View style={{ backgroundColor: '#2A2D3A', borderRadius: 8, marginBottom: 16, overflow: 'hidden' }}>
+          <MapView
+            style={{ width: '100%', height: 180 }}
+            initialRegion={{
+              latitude: item.origin.latitude,
+              longitude: item.origin.longitude,
+              latitudeDelta: 0.5,
+              longitudeDelta: 0.5,
+            }}
+          >
+           
+            <MapViewDirections
+              origin={item.origin}
+              destination={item.destination}
+              apikey={GOOGLE_MAPS_APIKEY}
+              strokeWidth={4}
+              strokeColor="blue"
+            /> 
+            <Marker coordinate={item.origin} title="Start" />
+            <Marker coordinate={item.destination} title="End" />
+          </MapView>
+          
+          <View style={{ padding: 12 }}> 
+            <TouchableOpacity onPress={() => handleHistoryClick(item)}>
+            <Text style={{ color: 'white', fontSize: 16, fontWeight: 'bold' }}>{item.date}</Text>
+           <Text style={{ color: '#9CA3AF', fontSize: 14, marginTop: 4 }}>
+  Start: {
+    item.originCoords?.address ||
+    item.originCoords?.name ||
+    item.originName ||
+    item.fullRouteData?.legs?.[0]?.start_address ||
+    (typeof item.origin === 'string'
+      ? item.origin
+      : (item.origin && typeof item.origin.latitude === 'number' && typeof item.origin.longitude === 'number')
+        ? `${item.origin.latitude}, ${item.origin.longitude}`
+        : 'Unknown')
+  }
+</Text>
+<Text style={{ color: '#9CA3AF', fontSize: 14, marginTop: 4 }}>
+  End: {
+    item.destinationCoords?.address ||
+    item.destinationCoords?.name ||
+    item.destinationName ||
+    item.fullRouteData?.legs?.[0]?.end_address ||
+    (typeof item.destination === 'string'
+      ? item.destination
+      : (item.destination && typeof item.destination.latitude === 'number' && typeof item.destination.longitude === 'number')
+        ? `${item.destination.latitude}, ${item.destination.longitude}`
+        : 'Unknown')
+  }
+</Text>
+            <Text style={{ color: '#06B6D4', fontSize: 14, marginTop: 4 }}>
+              Fare: {item.fare || '₱0'}
+            </Text>
+            </TouchableOpacity>
+          </View> 
+        </View>
+      </SlideInItem>
+    ),
+    [handleHistoryClick]
+  );
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#0f1c2e' }}>
@@ -306,113 +453,29 @@ export default function RideWise() {
          <FlatList
             data={filterFareHistory()}
             keyExtractor={(item) => item.id}
-            renderItem={({ item }) => (
-    <TouchableOpacity onPress={() => handleHistoryClick(item)}>
-      <View
-        style={{
-          backgroundColor: '#2A2D3A',
-          borderRadius: 8,
-          marginBottom: 16,
-          padding: 12,
-          flexDirection: 'row',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-        }}
-      >
-        <View style={{ flex: 1, marginRight: 12 }}>
-          <Text style={{ color: 'white', fontSize: 16, fontWeight: 'bold' }}>
-            {item.date}
-          </Text>
-          <Text style={{ color: '#9CA3AF', fontSize: 14, marginTop: 4 }}>
-            Origin: {item.fullRouteData?.legs?.[0]?.start_address || 'Unknown'}
-          </Text>
-          <Text style={{ color: '#9CA3AF', fontSize: 14, marginTop: 4 }}>
-            Destination: {item.fullRouteData?.legs?.[0]?.end_address || 'Unknown'}
-          </Text>
-          <Text style={{ color: '#06B6D4', fontSize: 14, marginTop: 4 }}>
-            Fare: {item.fare || '₱0'}
-          </Text>
-        </View>
-       <TouchableOpacity
-  onPress={() => deleteFareHistory(item.id)}
-  style={{ padding: 16, borderRadius: 24, alignItems: 'center', justifyContent: 'center' }}
-  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
->
-  <Ionicons name="trash-outline" size={20} color="#FF6B6B" />
-</TouchableOpacity>
+           renderItem={renderListItem}
+           onEndReached={() => {
+    if (hasMore && !loadingMore) fetchTransitHistory();
+  }}
+  onEndReachedThreshold={0.5}
+  ListFooterComponent={
+    loadingMore ? (
+      <View style={{ padding: 16, alignItems: 'center' }}>
+        <Text style={{ color: '#9CA3AF' }}>Loading more...</Text>
       </View>
-    </TouchableOpacity>
-  )}
-/>
+    ) : null
+  }
+          />
         ) : (
           // Grid View (with Map)
           <FlatList
   data={filterFareHistory()}
   keyExtractor={(item) => item.id}
-  renderItem={({ item }) => (
-   
-      <View style={{ backgroundColor: '#2A2D3A', borderRadius: 8, marginBottom: 16, overflow: 'hidden' }}>
-        <MapView
-          style={{ width: '100%', height: 180 }}
-          initialRegion={{
-            latitude: item.origin.latitude,
-            longitude: item.origin.longitude,
-            latitudeDelta: 0.5,
-            longitudeDelta: 0.5,
-          }}
-        >
-         
-          <MapViewDirections
-            origin={item.origin}
-            destination={item.destination}
-            apikey={GOOGLE_MAPS_APIKEY}
-            strokeWidth={4}
-            strokeColor="blue"
-          /> 
-          <Marker coordinate={item.origin} title="Start" />
-          <Marker coordinate={item.destination} title="End" />
-        </MapView>
-        
-        <View style={{ padding: 12 }}> 
-          <TouchableOpacity onPress={() => handleHistoryClick(item)}>
-          <Text style={{ color: 'white', fontSize: 16, fontWeight: 'bold' }}>{item.date}</Text>
-         <Text style={{ color: '#9CA3AF', fontSize: 14, marginTop: 4 }}>
-  Start: {
-    item.originCoords?.address ||
-    item.originCoords?.name ||
-    item.originName ||
-    item.fullRouteData?.legs?.[0]?.start_address ||
-    (typeof item.origin === 'string'
-      ? item.origin
-      : (item.origin && typeof item.origin.latitude === 'number' && typeof item.origin.longitude === 'number')
-        ? `${item.origin.latitude}, ${item.origin.longitude}`
-        : 'Unknown')
-  }
-</Text>
-<Text style={{ color: '#9CA3AF', fontSize: 14, marginTop: 4 }}>
-  End: {
-    item.destinationCoords?.address ||
-    item.destinationCoords?.name ||
-    item.destinationName ||
-    item.fullRouteData?.legs?.[0]?.end_address ||
-    (typeof item.destination === 'string'
-      ? item.destination
-      : (item.destination && typeof item.destination.latitude === 'number' && typeof item.destination.longitude === 'number')
-        ? `${item.destination.latitude}, ${item.destination.longitude}`
-        : 'Unknown')
-  }
-</Text>
-          <Text style={{ color: '#06B6D4', fontSize: 14, marginTop: 4 }}>
-            Fare: {item.fare || 'N/A'}
-          </Text>
-          </TouchableOpacity>
-        </View> 
-      </View>
-   
-            )}
+  renderItem={renderGridItem}
           />
         )}
       </View>
+      
     </SafeAreaView>
   );
 }

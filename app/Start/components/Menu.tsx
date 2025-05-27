@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, StatusBar,Image,ScrollView, Alert } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import { Feather, Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useFonts } from 'expo-font';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -48,11 +48,25 @@ export default function Menu() {
     >
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent  />
       {/* Header */}
-      <View className="flex-row items-center justify-between mb-6">
-        <Feather name="arrow-left" size={24} color="white" onPress={() => router.back()}/>
-        <Text style={{ color: 'white', fontSize: 24, fontFamily: 'Inter-Bold', marginBottom: 8, alignSelf: 'flex-start' }}>My Profile</Text>
-        <Feather name="settings" size={24} color="white" />
-      </View>
+      <View className="flex-row items-center justify-center mb-6" style={{ position: 'relative' }}>
+  <TouchableOpacity
+    style={{ position: 'absolute', left: 0 }}
+    onPress={() => router.back()}
+  >
+    <Ionicons name="chevron-back" size={24} color="white" />
+  </TouchableOpacity>
+  <Text
+    style={{
+      color: 'white',
+      fontSize: 24,
+      fontFamily: 'Inter-Bold',
+      marginBottom: 8,
+      alignSelf: 'center',
+    }}
+  >
+    My Profile
+  </Text>
+</View>
 
       {/* Profile Info */}
       <View className="items-center mb-8">

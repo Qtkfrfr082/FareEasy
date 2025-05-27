@@ -1,4 +1,4 @@
-import React, { useState, useRef} from 'react';
+import React, { useState, useRef, useEffect} from 'react';
 import { 
   View, 
   Text, 
@@ -16,7 +16,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons , MaterialCommunityIcons} from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams} from 'expo-router';
 import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
-
+import { Animated } from 'react-native';
 interface HistoryItem {
  id: string;
   name: string;
@@ -50,13 +50,39 @@ const RouteScreen = () => {
 
 
 const [isReady, setIsReady] = useState(false);
-
 React.useEffect(() => {
   AsyncStorage.getItem('user_id').then(id => {
     setUserId(id);
     setIsReady(true); // Only set ready after userId is loaded
   });
 }, []);
+const SlideInItem = ({ children, index }: { children: React.ReactNode; index: number }) => {
+    const translateX = useRef(new Animated.Value(60)).current;
+    const opacity = useRef(new Animated.Value(0)).current;
+  
+    useEffect(() => {
+      Animated.parallel([
+        Animated.timing(translateX, {
+          toValue: 0,
+          duration: 350,
+          delay: index * 60, // Stagger animation
+          useNativeDriver: true,
+        }),
+        Animated.timing(opacity, {
+          toValue: 1,
+          duration: 350,
+          delay: index * 60,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }, [index, translateX, opacity]);
+
+  return (
+    <Animated.View style={{ transform: [{ translateX }], opacity }}>
+      {children}
+    </Animated.View>
+  );
+};
 
 
 console.log('User ID:', userId); 
@@ -172,7 +198,8 @@ const handleApply = () => {
   
 // import { MaterialCommunityIcons } from '@expo/vector-icons';
 <MaterialCommunityIcons name="map-marker" size={22} color="#7B86F4" />
-  const renderHistoryItem = ({ item }: { item: HistoryItem }) => (
+  const renderHistoryItem = ({ item, index}: { item: HistoryItem; index: number }) => (
+   <SlideInItem index={index}>
   <TouchableOpacity
     onPress={() => {
   if (originRef.current) {
@@ -220,6 +247,7 @@ const handleApply = () => {
     </View>
     <View style={styles.divider} />
   </TouchableOpacity>
+  </SlideInItem>
 );
 
   if (!isReady) {
@@ -431,7 +459,7 @@ const handleApply = () => {
 </View>
         <FlatList
           data={historyData}
-          renderItem={renderHistoryItem}
+         renderItem={({ item, index }) => renderHistoryItem({ item, index })}
           keyExtractor={item => item.id}
           scrollEnabled={true}
         />

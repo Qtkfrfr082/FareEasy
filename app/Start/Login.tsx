@@ -83,6 +83,7 @@ const Login = () => {
               onChangeText={setEmail}
               keyboardType="email-address"
               autoCapitalize="none"
+              autoComplete="email"
             />
           </View>
 
@@ -95,6 +96,7 @@ const Login = () => {
               value={password}
               onChangeText={setPassword}
               secureTextEntry={!showPassword}
+              autoComplete="password"
             />
             <TouchableOpacity
               className="absolute right-4 top-4"

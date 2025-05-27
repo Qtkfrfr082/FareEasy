@@ -14,8 +14,7 @@ import MapView, { Marker, Polyline } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-
+import { Animated } from 'react-native';
 // Import fare helpers from utils
 import {
   fareMatrix,
@@ -38,6 +37,33 @@ export default function RideWise() {
   const [destCoords, setDestCoords] = useState<{ latitude: number; longitude: number } | null>(null);
   const [sortMode, setSortMode] = useState<'distance' | 'fare'>('distance');
   const params = useLocalSearchParams();
+  const SlideInItem = ({ children, index }: { children: React.ReactNode; index: number }) => {
+  const translateX = useRef(new Animated.Value(60)).current;
+  const opacity = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(translateX, {
+        toValue: 0,
+        duration: 350,
+        delay: index * 60,
+        useNativeDriver: true,
+      }),
+      Animated.timing(opacity, {
+        toValue: 1,
+        duration: 350,
+        delay: index * 60,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [index, translateX, opacity]);
+
+  return (
+    <Animated.View style={{ transform: [{ translateX }], opacity }}>
+      {children}
+    </Animated.View>
+  );
+};
   const passengerType = Array.isArray(params.passengerType)
     ? params.passengerType[0]
     : params.passengerType || 'Regular';
@@ -418,6 +444,7 @@ export default function RideWise() {
               );
             }
             return (
+                <SlideInItem index={index}>
              <TouchableOpacity
     onPress={() => setSelectedRouteIndex(index)}
     style={{
@@ -473,6 +500,7 @@ export default function RideWise() {
       </TouchableOpacity>
     </View>
   </TouchableOpacity>
+  </SlideInItem>
             );
           }}
         />
