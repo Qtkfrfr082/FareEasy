@@ -1,4 +1,7 @@
+import * as Location from 'expo-location';
 import React, { useEffect, useState, useRef, useMemo } from 'react';
+import BottomSheet, { BottomSheetView,  BottomSheetScrollView } from "@gorhom/bottom-sheet";
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import {
   View,
   Text,
@@ -70,12 +73,51 @@ export default function RideWise() {
   const [walkGroupSelections, setWalkGroupSelections] = useState<{ [key: number]: 'WALK' | 'TRICYCLE' }>({});
   const [hasSavedHistory, setHasSavedHistory] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
-  
-  let routeData = null;
+  const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  const bottomSheetRef = useRef<BottomSheet>(null);
+const snapPoints = useMemo(() => ["20%", "50%", "90%"], []);
+   useEffect(() => {
+    const fetchUserLocation = async () => {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') return;
+      let location = await Location.getCurrentPositionAsync({});
+      setUserLocation({
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+      });
+    };
+    fetchUserLocation();
+  }, []);
+
+  const [userHeading, setUserHeading] = useState<number | null>(null);
+
+useEffect(() => {
+  let subscription: Location.LocationSubscription | null = null;
+  const subscribe = async () => {
+    let { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== 'granted') return;
+    subscription = await Location.watchPositionAsync(
+      { accuracy: Location.Accuracy.High, distanceInterval: 1, timeInterval: 1000 },
+      (location) => {
+        setUserLocation({
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+        });
+        setUserHeading(location.coords.heading ?? 0);
+      }
+    );
+  };
+  subscribe();
+  return () => {
+    if (subscription) subscription.remove();
+  };
+}, []);
+
+   let routeData = null;
   if (params.routeData) {
     try {
       routeData = JSON.parse(params.routeData as string);
-      console.log('Recieved routeData:', routeData);
+     
     } catch (e) {
       routeData = null;
     }
@@ -179,16 +221,56 @@ export default function RideWise() {
     }
   }, [routeData]);
 
-  const saveTransitToBackend = async () => {
+  const saveFavoriteToBackend = async () => {
   try {
-    // Always get the latest user_id from AsyncStorage
     const userId = await AsyncStorage.getItem('user_id');
     if (!userId) {
       Alert.alert('Error', 'User not logged in.');
       return;
     }
 
-    // Only save the minimal Google Directions API-like structure
+    const minimalRouteData = {
+      bounds: routeData.bounds,
+      copyrights: routeData.copyrights,
+      fare: routeData.fare,
+      legs: routeData.legs,
+      overview_polyline: routeData.overview_polyline,
+      summary: routeData.summary,
+      warnings: routeData.warnings,
+      waypoint_order: routeData.waypoint_order,
+    };
+
+    const favorite = {
+      fullRouteData: minimalRouteData,
+      passengerType,
+      date: new Date().toISOString(),
+      totalFare: discountedFare,
+    };
+
+    const response = await fetch('https://donewithit-yk99.onrender.com/add-favorite', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: userId, favorite }),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      Alert.alert('Error', data.message || 'Failed to save favorite.');
+    } else {
+      Alert.alert('Success', 'Route added to favorites!');
+    }
+  } catch (error) {
+    Alert.alert('Network Error', 'Could not connect to the server. Please try again later.');
+  }
+};
+
+const saveTransitToBackend = async () => {
+  try {
+    const userId = await AsyncStorage.getItem('user_id');
+    if (!userId) {
+      Alert.alert('Error', 'User not logged in.');
+      return;
+    }
+
     const minimalRouteData = {
       bounds: routeData.bounds,
       copyrights: routeData.copyrights,
@@ -214,17 +296,64 @@ export default function RideWise() {
     });
     const data = await response.json();
     if (!response.ok) {
-      Alert.alert('Error', data.message || 'Failed to save transit.');
+      Alert.alert('Error', data.message || 'Failed to save favorite.');
     } else {
+      Alert.alert('Success', 'Route added to favorites!');
     }
   } catch (error) {
     Alert.alert('Network Error', 'Could not connect to the server. Please try again later.');
   }
 };
-
   const shortestRouteData = routeData; // Route with shortest distance
   const cheapestRouteData = routeData; // Route with lowest fare
   const selectedRouteData = routeType === 'shortest' ? shortestRouteData : cheapestRouteData;
+
+
+ const hasFocusedRef = useRef(false); // Add this near your other refs/states
+
+useEffect(() => {
+  if (
+    routeData?.overview_polyline?.points &&
+    mapRef.current &&
+    !hasFocusedRef.current // Only run once
+  ) {
+    const coords = decodePolyline(routeData.overview_polyline.points);
+    if (coords.length > 0) {
+      setTimeout(() => {
+        // Focus and tilt to side view
+        mapRef.current?.fitToCoordinates(coords, {
+          edgePadding: { top: 60, right: 60, bottom: 60, left: 60 },
+          animated: true,
+        });
+        mapRef.current?.animateCamera(
+          {
+            center: coords[Math.floor(coords.length / 2)],
+            pitch: 60, // Side view
+            heading: 0,
+            zoom: 15,
+            altitude: 500,
+          },
+          { duration: 1500 }
+        );
+        hasFocusedRef.current = true; // Prevent future runs
+
+        // After 3 seconds, animate to top-down (unfocused) view
+        setTimeout(() => {
+          mapRef.current?.animateCamera(
+            {
+              center: coords[Math.floor(coords.length / 2)],
+              pitch: 0, // Top-down view
+              heading: 0,
+              zoom: 14, // Zoom out a bit
+              altitude: 1500,
+            },
+            { duration: 1200 }
+          );
+        }, 3000); // 3 seconds after focus
+      }, 700);
+    }
+  }
+}, [routeData]);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#0f1c2e' }}>
@@ -250,26 +379,31 @@ export default function RideWise() {
         }}>
         
         </Text>
-        <TouchableOpacity onPress={saveTransitToBackend} style={{ marginLeft: 12 }}>
+        <TouchableOpacity onPress={saveFavoriteToBackend} style={{ marginLeft: 12 }}>
           <Ionicons name="heart-outline" size={28} color="#FF4D4D" />
         </TouchableOpacity>
       </View>
-
+   
+        <GestureHandlerRootView>
+  <View
+        style={styles.mapContainer}
+      >
       {/* Map View */}
       {routeData.overview_polyline?.points && (
         <View
           style={{
-            marginHorizontal: 16,
+            marginHorizontal: 2,
             marginBottom: 8,
             borderRadius: 16,
             backgroundColor: '#0f1c2e',
             overflow: 'hidden',
-            height: 350,
+            height: 610,
           }}
         >
           <MapView
             ref={mapRef}
-            style={{ width: '100%', height: '100%' }}
+            style={styles.map}
+            
             initialRegion={{
               latitude: (origin.latitude + destination.latitude) / 2,
               longitude: (origin.longitude + destination.longitude) / 2,
@@ -278,19 +412,35 @@ export default function RideWise() {
             }}
             showsTraffic={true}
           >
+            {/* User Location Marker */}
+            {userLocation && (
+              <Marker
+                coordinate={userLocation}
+                title="Your Location"
+                pinColor="#2048F3"
+              >
+                <View
+                  style={{
+                    width: 18,
+                    height: 18,
+                    borderRadius: 9,
+                    backgroundColor: '#2048F3',
+                    borderWidth: 3,
+                    borderColor: '#fff',
+                  }}
+                />
+              </Marker>
+            )}
             {/* Origin Marker */}
             <Marker coordinate={origin} title="Start" />
-
             {/* Destination Marker */}
             <Marker coordinate={destination} title="End" />
-
             {/* Route Polyline */}
             <Polyline
               coordinates={downsamplePolyline(decodePolyline(routeData.overview_polyline.points))}
               strokeColor="blue"
               strokeWidth={4}
             />
-
             {/* Pop-out mins at each step's start */}
             {routeData.legs[0]?.steps.slice(0, 20).map((step: any, idx: number) => (
               <Marker
@@ -318,9 +468,42 @@ export default function RideWise() {
               </Marker>
             ))}
           </MapView>
+          {/* Traffic Legend */}
+          <View
+            style={{
+              position: 'absolute',
+              bottom: 16,
+              right: 16,
+              backgroundColor: 'rgba(255,255,255,0.95)',
+              borderRadius: 8,
+              padding: 10,
+              flexDirection: 'row',
+              alignItems: 'center',
+              elevation: 4,
+              shadowColor: '#000',
+              shadowOpacity: 0.15,
+              shadowRadius: 4,
+            }}
+          >
+            <View style={{ width: 18, height: 6, backgroundColor: '#2ecc40', borderRadius: 3, marginRight: 6 }} />
+            <Text style={{ fontSize: 13, color: '#222', marginRight: 12 }}>Light</Text>
+            <View style={{ width: 18, height: 6, backgroundColor: '#ffdc00', borderRadius: 3, marginRight: 6 }} />
+            <Text style={{ fontSize: 13, color: '#222', marginRight: 12 }}>Moderate</Text>
+            <View style={{ width: 18, height: 6, backgroundColor: '#ff4136', borderRadius: 3, marginRight: 6 }} />
+            <Text style={{ fontSize: 13, color: '#222' }}>Heavy</Text>
+          </View>
         </View>
       )}
-
+      </View>
+     <BottomSheet
+      ref={bottomSheetRef}
+      index={0}
+      snapPoints={snapPoints}
+      backgroundStyle={{  borderRadius: 16 }}
+      handleIndicatorStyle={{ backgroundColor: '#888' }}
+    >
+ <BottomSheetView style={{ flex: 1  }}>
+      {/* Route Details */}
       <View style={{
         backgroundColor: '#fff',
         padding: 18,
@@ -358,8 +541,6 @@ export default function RideWise() {
       </View>
 
       <ScrollView style={{ flex: 1, backgroundColor: '#E5E4E2', marginTop: 0 }}>
-        {/* Route Summary Card */}
-
         {/* Steps */}
         {groupedSteps.map((group, idx) => {
           if (group.type === 'WALK_GROUP') {
@@ -512,11 +693,23 @@ export default function RideWise() {
         })}
         <View style={{ height: 30 }} />
       </ScrollView>
-    </SafeAreaView>
-  );
+       </BottomSheetView>
+    </BottomSheet>
+    </GestureHandlerRootView>
+  </SafeAreaView>
+);
 }
 
-const styles = StyleSheet.create({
+const styles = StyleSheet.create({ 
+  map: {
+      ...StyleSheet.absoluteFillObject,
+    },
+  mapContainer: {
+    flex: 1,
+    marginHorizontal: 12,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
   stepCard: {
     backgroundColor: '#fff',
     marginTop: 12,
@@ -540,6 +733,11 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginTop: 2,
   } as TextStyle,
+  contentContainer: {
+    flex: 1,
+    padding: 36,
+    alignItems: 'center',
+  },
 });
 
 // Helper function to decode a polyline string into an array of coordinates
@@ -586,3 +784,4 @@ function downsamplePolyline(points: PolylinePoint[], maxPoints: number = 500): P
   const step = Math.ceil(points.length / maxPoints);
   return points.filter((_, idx) => idx % step === 0);
 }
+

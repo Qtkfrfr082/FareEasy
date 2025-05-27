@@ -27,13 +27,13 @@ export default function RideWise() {
   const [fareHistory, setFareHistory] = useState<any[]>([]);
 
  React.useEffect(() => {
-  const fetchTransitHistory = async () => {
+   const fetchFavorites = async () => {
     const userId = await AsyncStorage.getItem('user_id');
     if (!userId) {
       Alert.alert('Error', 'User not logged in.');
       return;
     }
-    fetch(`https://donewithit-yk99.onrender.com/get-transit?user_id=${userId}`)
+      fetch(`https://donewithit-yk99.onrender.com/get-favorites?user_id=${userId}`)
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data.transit)) {
@@ -67,7 +67,7 @@ export default function RideWise() {
       });
   };
 
-  fetchTransitHistory();
+   fetchFavorites();
 }, []);
            
 
@@ -83,26 +83,23 @@ export default function RideWise() {
   };
 
   // Delete function
-  const deleteFareHistory = async (id: string) => {
+  const deleteFavorite = async (id: string) => {
   Alert.alert(
     'Delete Confirmation',
-    'Are you sure you want to delete this record?',
+    'Are you sure you want to remove this favorite?',
     [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Delete',
         style: 'destructive',
         onPress: async () => {
-          // Remove from local state
-          console.log('Deleting transit_id:', id); // <-- Add this
           setFareHistory((prev) => prev.filter((item) => item.id !== id));
-          // Remove from backend
           const userId = await AsyncStorage.getItem('user_id');
           if (userId) {
-            fetch('https://donewithit-yk99.onrender.com/delete-transit', {
+            fetch('https://donewithit-yk99.onrender.com/delete-favorite', { // <-- changed endpoint
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ user_id: userId, transit_id: id }),
+              body: JSON.stringify({ user_id: userId, favorite_id: id }), // <-- changed property
             });
           }
         },
@@ -183,7 +180,7 @@ export default function RideWise() {
             flex: 1,
           }}
         >
-          Transit History
+          Favorites
         </Text>
       </View>
 
@@ -300,7 +297,7 @@ export default function RideWise() {
 
       {/* Recent Fare History */}
       <View style={{ flex: 1, paddingHorizontal: 16 }}>
-        <Text style={{ color: '#9CA3AF', fontSize: 16, marginBottom: 8 }}>Recent Fare History</Text>
+        <Text style={{ color: '#9CA3AF', fontSize: 16, marginBottom: 8 }}>Your Favorite Routes</Text>
 
         {viewMode === 'list' ? (
          <FlatList
@@ -333,8 +330,8 @@ export default function RideWise() {
             Fare: {item.fare || '₱0'}
           </Text>
         </View>
-       <TouchableOpacity
-  onPress={() => deleteFareHistory(item.id)}
+      <TouchableOpacity
+  onPress={() => deleteFavorite(item.id)}
   style={{ padding: 16, borderRadius: 24, alignItems: 'center', justifyContent: 'center' }}
   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
 >

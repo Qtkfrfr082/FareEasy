@@ -203,5 +203,51 @@ def get_transit():
         return jsonify({'transit': transit}), 200
     except Exception as e:
         return jsonify({'status': 'error', 'message': f'Failed to fetch transit: {str(e)}'}), 500
+@app.route('/add-favorite', methods=['POST'])
+def add_favorite():
+    data = request.get_json()
+    user_id = data.get('user_id')
+    favorite = data.get('favorite')
+    if not user_id or not favorite:
+        return jsonify({'status': 'error', 'message': 'Missing user_id or favorite data'}), 400
+    try:
+        user_fav_ref = db.collection('Users').document(user_id).collection('Favorites')
+        favorite['created_at'] = firestore.SERVER_TIMESTAMP
+        fav_ref = user_fav_ref.document()
+        fav_ref.set(favorite)
+        return jsonify({'status': 'success', 'message': 'Favorite added'}), 200
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': f'Failed to add favorite: {str(e)}'}), 500
+    
+@app.route('/get-favorites', methods=['GET'])
+def get_favorites():
+    user_id = request.args.get('user_id')
+    if not user_id:
+        return jsonify({'status': 'error', 'message': 'Missing user_id'}), 400
+    try:
+        user_fav_ref = db.collection('Users').document(user_id).collection('Favorites')
+        fav_query = user_fav_ref.order_by('created_at', direction=firestore.Query.DESCENDING)
+        favorites = []
+        for doc in fav_query.stream():
+            item = doc.to_dict()
+            item['id'] = doc.id
+            favorites.append(item)
+        return jsonify({'favorites': favorites}), 200
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': f'Failed to fetch favorites: {str(e)}'}), 500
+
+@app.route('/delete-favorite', methods=['POST'])
+def delete_favorite():
+    data = request.get_json()
+    user_id = data.get('user_id')
+    favorite_id = data.get('favorite_id')
+    if not user_id or not favorite_id:
+        return jsonify({'status': 'error', 'message': 'Missing user_id or favorite_id'}), 400
+    try:
+        user_fav_ref = db.collection('Users').document(user_id).collection('Favorites').document(favorite_id)
+        user_fav_ref.delete()
+        return jsonify({'status': 'success', 'message': 'Favorite deleted'}), 200
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': f'Failed to delete favorite: {str(e)}'}), 500
 if __name__ == '__main__':
     app.run(debug=True)

@@ -7,6 +7,7 @@ const App: React.FC = () => {
   return (
     <View style={styles.container}>
       {/* Redirect to the Login screen by default */}
+      {/*<Redirect href="/Start/components/bottomshet" />*/}
       <Redirect href="/Start/Login" />
     </View>
   );

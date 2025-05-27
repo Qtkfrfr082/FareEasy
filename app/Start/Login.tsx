@@ -37,7 +37,7 @@ const Login = () => {
           await AsyncStorage.setItem('user_id', data.user_id);
           console.log('User ID saved:', data.user_id);
         }
-        alert('Login successful!');
+       
         router.replace('./Home');
       } else {
         alert(data.message || 'Login failed');

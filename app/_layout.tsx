@@ -1,9 +1,8 @@
-// _layout.tsx
 import '../global.css';
 import React, { useState } from 'react';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Stack } from 'expo-router';
-import SplashScreenComponent from './Splash'; // Adjust the path if necessary
-
+import SplashScreenComponent from './Splash'; 
 const RootLayout = () => {
     const [isSplashVisible, setSplashVisible] = useState(true);
 
@@ -12,7 +11,8 @@ const RootLayout = () => {
     };
 
     return (
-        <>
+        <GestureHandlerRootView>
+        
             {isSplashVisible ? (
                 <SplashScreenComponent onFinish={handleSplashFinish} />
             ) : (
@@ -25,9 +25,11 @@ const RootLayout = () => {
                     <Stack.Screen name="Start/components/Editprofile" />
                     <Stack.Screen name="Start/components/Menu" />
                     <Stack.Screen name="Start/components/RoutesMap" />
+                    <Stack.Screen name="Start/components/favorite" />
                 </Stack>
             )}
-        </>
+       
+      </GestureHandlerRootView>
     );
 };
 

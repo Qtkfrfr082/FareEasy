@@ -49,17 +49,20 @@ const RouteScreen = () => {
  const [userId, setUserId] = useState<string | null>(null);
 
 
+const [isReady, setIsReady] = useState(false);
+
 React.useEffect(() => {
-  // Always load user_id first
   AsyncStorage.getItem('user_id').then(id => {
     setUserId(id);
-    
+    setIsReady(true); // Only set ready after userId is loaded
   });
 }, []);
+
+
 console.log('User ID:', userId); 
 
 React.useEffect(() => {
-  if (!userId) return;
+  if (!userId) return ;
   fetch(`https://donewithit-yk99.onrender.com/recent-searches?user_id=${userId}`)
     .then(res => res.json())
     .then(data => {
@@ -82,19 +85,17 @@ React.useEffect(() => {
 }, [historyData, userId]);
 
 React.useEffect(() => {
-  if (originData && !hasSetOriginRef.current) {
+  if (
+    originData &&
+    originData.name &&
+    originRef.current &&
+    !hasSetOriginRef.current
+  ) {
     setOrigin(originData);
-    const addressText =
-      originData.formatted_address ||
-      originData.name ||
-      (originData.vicinity ? originData.vicinity : '') ||
-      '';
-    if (originRef.current && addressText) {
-      originRef.current.setAddressText(addressText);
-      hasSetOriginRef.current = true; // Prevent future updates
-    }
+    originRef.current.setAddressText(originData.name);
+    hasSetOriginRef.current = true;
   }
-}, [originData]);
+}, [originData, originRef.current]);
 
 const handleApply = () => {
   if (!origin || !destination) {
@@ -221,6 +222,16 @@ const handleApply = () => {
   </TouchableOpacity>
 );
 
+  if (!isReady) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+        {/* You can use a spinner or just return null */}
+        <Text style={{ color: 'white', textAlign: 'center', marginTop: 40 }}>Loading...</Text>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
     <StatusBar barStyle="light-content" backgroundColor="transparent" translucent  />
@@ -249,7 +260,11 @@ const handleApply = () => {
   query={{
     key: GOOGLE_MAPS_APIKEY,
     language: 'en',
+    components: 'country:ph',
   }}
+    textInputProps={{
+    placeholderTextColor: '#ADD8E6'
+    }}
   fetchDetails={true}
   enablePoweredByContainer={false}
   styles={{
@@ -263,6 +278,7 @@ const handleApply = () => {
       paddingHorizontal: 16,
       fontSize: 16,
       height: 40,
+      textAlign: 'left',
     },
     listView: {
       backgroundColor: '#272935',
@@ -297,13 +313,18 @@ const handleApply = () => {
         <GooglePlacesAutocomplete
           ref={destinationRef}
           placeholder="Choose destination"
+         
           onPress={(data, details = null) => {
             setDestination(details); // Save destination details as an object
           }}
           query={{
             key: GOOGLE_MAPS_APIKEY,
             language: 'en',
+            components: 'country:ph',
           }}
+          textInputProps={{
+    placeholderTextColor: '#ADD8E6'
+    }}
           fetchDetails={true}
           enablePoweredByContainer={false}
           styles={{
@@ -317,6 +338,8 @@ const handleApply = () => {
       paddingHorizontal: 16,
       fontSize: 16,
       height: 40,
+      textAlign: 'left',  
+      textcolor: 'white', 
     },
     listView: {
       backgroundColor: '#272935',
