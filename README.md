@@ -1,7 +1,9 @@
 # FareEasy
 
 **FareEasy** is a simple fare calculator app designed for **students and commuters**.  
-It helps users estimate transportation costs by inputting their route and viewing available fare options.  
+It helps users estimate transportation costs by inputting their route and viewing available fare options.
+
+Ps: This is Academic Project
 
 ---
 
