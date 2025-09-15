@@ -79,9 +79,8 @@ See fare estimates for each mode of transport
 Toggle options (like replacing bus with jeepney, or walking with tricycle)
 
 ## 🔭 Future Improvements
-Save frequent routes for quick access
 
-Multi-currency or fare adjustments
+Accuracy fares
 
 Offline mode for saved routes
 
