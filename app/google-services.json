@@ -1,8 +1,8 @@
 {
   "project_info": {
-    "project_number": "54531737499",
-    "project_id": "fareeary-59dd0",
-    "storage_bucket": "fareeary-59dd0.firebasestorage.app"
+    "project_number": "",
+    "project_id": "",
+    "storage_bucket": ""
   },
   "client": [
     {
@@ -14,20 +14,20 @@
       },
       "oauth_client": [
         {
-          "client_id": "54531737499-f34dlo9tenrdcfmdkgmaf1tp6o0nhqh2.apps.googleusercontent.com",
+          "client_id": "",
           "client_type": 3
         }
       ],
       "api_key": [
         {
-          "current_key": "AIzaSyAdVFAh9P_ek9FeNjkHeU3GnU4YgEMI0N4"
+          "current_key": ""
         }
       ],
       "services": {
         "appinvite_service": {
           "other_platform_oauth_client": [
             {
-              "client_id": "54531737499-f34dlo9tenrdcfmdkgmaf1tp6o0nhqh2.apps.googleusercontent.com",
+              "client_id": "",
               "client_type": 3
             }
           ]
