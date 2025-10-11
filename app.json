@@ -9,7 +9,7 @@
     "userInterfaceStyle": "light",
     "newArchEnabled": false,
     "extra": {
-      "googleMapsApiKey": "AIzaSyDh3IwX1o3v0Ud_YZJUtM_29LIetafzQAY",
+      "googleMapsApiKey": "",
       "router": {
         "origin": false
       },
@@ -34,7 +34,7 @@
       "versionCode": 1,
       "config": {
         "googleMaps": {
-          "apiKey": "AIzaSyDh3IwX1o3v0Ud_YZJUtM_29LIetafzQAY"
+          "apiKey": ""
         }
       },
       "adaptiveIcon": {
