@@ -8,7 +8,7 @@ import { useFonts } from 'expo-font';
 import { Calendar } from 'react-native-calendars';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Animated } from 'react-native';
-const GOOGLE_MAPS_APIKEY = 'AIzaSyDh3IwX1o3v0Ud_YZJUtM_29LIetafzQAY';
+const GOOGLE_MAPS_APIKEY = '';
 
 export default function RideWise() {
   const router = useRouter();
