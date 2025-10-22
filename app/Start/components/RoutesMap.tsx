@@ -25,7 +25,7 @@ import {
   getRouteTotalFare,
 } from '../util/fareutils';
 
-const GOOGLE_MAPS_APIKEY = 'AIzaSyDh3IwX1o3v0Ud_YZJUtM_29LIetafzQAY'; // Replace with your API key
+const GOOGLE_MAPS_APIKEY = ''; // Replace with your API key
 
 export default function RideWise() {
   const router = useRouter();
