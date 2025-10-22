@@ -39,7 +39,7 @@ AsyncStorage.getItem('user_id').then(id => {
 });
 
 const { width } = Dimensions.get('window');
-const GOOGLE_MAPS_APIKEY = 'AIzaSyDh3IwX1o3v0Ud_YZJUtM_29LIetafzQAY';
+const GOOGLE_MAPS_APIKEY = '';
 
 type VehicleType =
   | 'BUS'
