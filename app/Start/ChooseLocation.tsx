@@ -27,7 +27,7 @@ interface HistoryItem {
 // Remove top-level await; fetch userId inside a useEffect or async function if needed
 
 
-const GOOGLE_MAPS_APIKEY = 'AIzaSyDh3IwX1o3v0Ud_YZJUtM_29LIetafzQAY'; // Replace with your API key
+const GOOGLE_MAPS_APIKEY = ''; // Replace with your API key
 const RouteScreen = () => {
   const router = useRouter();
   const [origin, setOrigin] = useState<any | null>(null); // Replace 'any' with the correct type if available
